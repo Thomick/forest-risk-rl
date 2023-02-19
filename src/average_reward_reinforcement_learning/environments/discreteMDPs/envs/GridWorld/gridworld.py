@@ -446,7 +446,7 @@ class GridWorld(DiscreteMDP):
         #    self.goalstates = self.makeGoalState(xy= [sizeX-2,sizeY-2])
         else:
             self.goalstates = self.makeGoalStates(nbGoals)
-        print("Goal states: ", self.goalstates)
+        # print("Goal states: ", self.goalstates)
         if initialSingleStateDistribution:
             isd = self.makeInitialSingleStateDistribution(
                 self.maze, xy=start
@@ -500,8 +500,8 @@ class GridWorld(DiscreteMDP):
         rewarddis = self.R[self.s][a]
         i = categorical_sample([t[0] for t in transitions], self.np_random)
         p, s, d = transitions[i]
-        if self.from_s(s) in self.goalstates:
-            print("Goal reached!")
+        # if self.from_s(s) in self.goalstates:
+        #    print("Goal reached!")
         r = rewarddis.rvs()
         m = rewarddis.mean()
         self.s = s

@@ -1,10 +1,17 @@
-from rlberry.agents import AgentWithSimplePolicy
+from rlberry.agents import Agent, AgentWithSimplePolicy
+from learners.discreteMDPs.OptimalControl import Opti_controller
+from rlberry.utils.writers import DefaultWriter
+from rlberry.seeding.seeder import Seeder
+import numpy as np
+from cvar import compute_empirical_cvar
 
 
 class ARRLAgent(AgentWithSimplePolicy):
     def __init__(self, env, learner_ctor, learner_args={}, **kwargs):
-        super().__init__(env, **kwargs)
+        self.env = env[0](**env[1])
         self.learner = learner_ctor(self.env.nS, self.env.nA, **learner_args)
+        self.name = self.learner.name()
+        super().__init__(env, **kwargs)
         self.global_step = 0
 
     def fit(self, budget, **kwargs):
@@ -14,12 +21,6 @@ class ARRLAgent(AgentWithSimplePolicy):
         episode_means = 0.0
         episode_rewards = 0.0
         # cummeans = []
-        print(
-            "[Info] New initialization of ",
-            self.learner.name(),
-            " for environment ",
-            self.env.name,
-        )
         # print("Initial state:" + str(observation))
         for t in range(budget):
             self.global_step += 1
@@ -54,13 +55,63 @@ class ARRLAgent(AgentWithSimplePolicy):
                     print("No writer")
                 episode_rewards = 0.0
                 episode_means = 0.0
-            if self.writer is not None:
+            if (
+                self.writer is not None
+                and self.global_step % (max(1, budget // 1000)) == 0
+            ):
                 self.writer.add_scalar("rewards", reward, self.global_step)
 
             # self.env.render()
-        # print("Cumreward: " + str(cumreward))
-        # print("Cummean: " + str(cummean))
-        # return cummeans #cumrewards,cummeans
 
     def policy(self, observation):
         return self.learner.play(observation)
+
+    def eval(self, metric="reward", **kwargs):
+        if metric == "reward":
+            return super().eval(**kwargs)
+        elif metric == "cvar":
+            return self.eval_cvar(**kwargs)
+
+    def eval_cvar(self, eval_horizon=10**5, n_simulations=10, gamma=1.0, alpha=0.05):
+        reward_samples = []
+        for sim in range(n_simulations):
+            observation = self.eval_env.reset()
+            tt = 0
+            while tt < eval_horizon:
+                action = self.policy(observation)
+                observation, reward, done, _ = self.eval_env.step(action)
+                reward_samples.append(reward)
+                tt += 1
+                if done:
+                    break
+        return compute_empirical_cvar(reward_samples, alpha)
+
+
+class OptAgent(AgentWithSimplePolicy):
+    def __init__(self, env, **kwargs):
+        super().__init__(env, **kwargs)
+        self.opti_controller = Opti_controller(
+            self.env, self.env.observation_space.n, self.env.action_space.n
+        )
+        self.global_step = 0
+
+    def fit(self, budget, **kwargs):
+        observation = self.env.reset()
+        self.opti_controller.reset(observation)
+        for t in range(budget):
+            self.global_step += 1
+            state = observation
+            action = self.policy(state)  # Get action
+            observation, reward, done, info = self.env.step(action)
+            if done:
+                print("Episode finished after {} timesteps".format(t + 1))
+                observation = self.env.reset()
+            if self.writer is not None:
+                self.writer.add_scalar("rewards", reward, self.global_step)
+                try:
+                    self.writer.add_scalar("means", info["mean"], self.global_step)
+                except TypeError:
+                    self.writer.add_scalar("means", reward, self.global_step)
+
+    def policy(self, observation):
+        return self.opti_controller.play(observation)
