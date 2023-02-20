@@ -45,12 +45,14 @@ def get_opti_average_reward(env_name, budget):
 
 if __name__ == "__main__":
     gamma = 1.0
-    n_fit = 3
-    budget = 100
-    alpha = 0.2
+    n_fit = 10
+    budget = 10000
+    alpha = 0.5
 
     # env_name = bW.registerWorld("random-100")
-    env_name = register_forestmdp(nbGrowState=3, nbNeighbors=2, Pg=0.6, Pw=0.1)
+    env_name = register_forestmdp(
+        nbGrowState=3, nbNeighbors=4, Pg=0.95, Pw=0.1, model_type="group_risk"
+    )
 
     eval_kwargs = dict(eval_horizon=100, n_simulations=20, metric="cvar")
 
