@@ -7,7 +7,8 @@ from cvar import compute_empirical_cvar
 
 
 class ARRLAgent(AgentWithSimplePolicy):
-    def __init__(self, env, learner_ctor, learner_args={}, **kwargs):
+    def __init__(self, env, learner_ctor, learner_args={}, render=False, **kwargs):
+        self.render = render
         self.env = env[0](**env[1])
         self.learner = learner_ctor(self.env.nS, self.env.nA, **learner_args)
         self.name = self.learner.name()
@@ -61,7 +62,8 @@ class ARRLAgent(AgentWithSimplePolicy):
             ):
                 self.writer.add_scalar("rewards", reward, self.global_step)
 
-            # self.env.render()
+            if self.render:
+                self.env.render()
 
     def policy(self, observation):
         return self.learner.play(observation)

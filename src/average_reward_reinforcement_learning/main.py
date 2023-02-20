@@ -9,6 +9,7 @@ from rlberry.envs import gym_make
 import numpy as np
 
 import environments.RegisterEnvironments as bW
+from env import register_forestmdp
 
 from agent import ARRLAgent, OptAgent
 from learners.discreteMDPs.IRL import IRL
@@ -44,16 +45,17 @@ def get_opti_average_reward(env_name, budget):
 
 if __name__ == "__main__":
     gamma = 1.0
-    n_fit = 10
-    budget = 5000
+    n_fit = 3
+    budget = 100
     alpha = 0.2
 
-    env_name = bW.registerWorld("random-100")
+    # env_name = bW.registerWorld("random-100")
+    env_name = register_forestmdp(nbGrowState=3, nbNeighbors=2, Pg=0.6, Pw=0.1)
 
-    eval_kwargs = dict(eval_horizon=budget, n_simulations=20, metric="cvar")
+    eval_kwargs = dict(eval_horizon=100, n_simulations=20, metric="cvar")
 
     multi_manager = MultipleManagers(parallelization="process", mp_context="fork")
-
+    """
     multi_manager.append(
         AgentManager(
             ARRLAgent,
@@ -75,14 +77,14 @@ if __name__ == "__main__":
             eval_kwargs=eval_kwargs,
             agent_name="PSRL",
         )
-    )
+    )"""
     multi_manager.append(
         AgentManager(
             ARRLAgent,
             (gym_make, dict(id=env_name)),
             n_fit=n_fit,
             fit_budget=budget,
-            init_kwargs={"learner_ctor": Qlearning},
+            init_kwargs={"learner_ctor": Qlearning, "render": False},
             eval_kwargs=eval_kwargs,
             agent_name="Qlearning",
         )
@@ -91,11 +93,12 @@ if __name__ == "__main__":
     multi_manager.run()
 
     opti_average_reward = get_opti_average_reward(env_name, budget)
+    print(opti_average_reward)
 
     _ = plot_writer_data(
         multi_manager.managers,
         tag="rewards",
-        title="Training Episode Cumulative Rewards",
+        title="Training Regret",
         preprocess_func=lambda x: np.cumsum(opti_average_reward - x),
         show=True,
         plot_raw_curves=True,
