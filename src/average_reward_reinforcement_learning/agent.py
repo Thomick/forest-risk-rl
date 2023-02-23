@@ -3,11 +3,20 @@ from learners.discreteMDPs.OptimalControl import Opti_controller
 from rlberry.utils.writers import DefaultWriter
 from rlberry.seeding.seeder import Seeder
 import numpy as np
-from cvar import compute_empirical_cvar
+from risk import compute_empirical_cvar, compute_group_risk
 
 
 class ARRLAgent(AgentWithSimplePolicy):
-    def __init__(self, env, learner_ctor, learner_args={}, render=False, **kwargs):
+    def __init__(
+        self,
+        env,
+        learner_ctor,
+        learner_args={},
+        render=False,
+        track_group_risk=False,
+        **kwargs
+    ):
+        self.track_group_risk = track_group_risk
         self.render = render
         self.env = env[0](**env[1])
         self.learner = learner_ctor(self.env.nS, self.env.nA, **learner_args)
@@ -61,6 +70,15 @@ class ARRLAgent(AgentWithSimplePolicy):
                 and self.global_step % (max(1, budget // 1000)) == 0
             ):
                 self.writer.add_scalar("rewards", reward, self.global_step)
+                if self.track_group_risk:
+                    self.writer.add_scalar(
+                        "group_risk",
+                        compute_group_risk(
+                            self.env.index_to_state(observation),
+                            self.env.group_risk_weights,
+                        ),
+                        self.global_step,
+                    )
 
             if self.render:
                 self.env.render()
@@ -90,6 +108,8 @@ class ARRLAgent(AgentWithSimplePolicy):
 
 
 class OptAgent(AgentWithSimplePolicy):
+    name = "Optimal Agent"
+
     def __init__(self, env, **kwargs):
         super().__init__(env, **kwargs)
         self.opti_controller = Opti_controller(

@@ -46,12 +46,14 @@ def get_opti_average_reward(env_name, budget):
 if __name__ == "__main__":
     gamma = 1.0
     n_fit = 10
-    budget = 10000
+    budget = 100
     alpha = 0.5
+    plot_regret = False
+    plot_group_risk = True
 
     # env_name = bW.registerWorld("random-100")
     env_name = register_forestmdp(
-        nbGrowState=3, nbNeighbors=4, Pg=0.95, Pw=0.1, model_type="group_risk"
+        nbGrowState=50, nbNeighbors=2, Pg=0.95, Pw=0.1, model_type="independent"
     )
 
     eval_kwargs = dict(eval_horizon=100, n_simulations=20, metric="cvar")
@@ -86,7 +88,11 @@ if __name__ == "__main__":
             (gym_make, dict(id=env_name)),
             n_fit=n_fit,
             fit_budget=budget,
-            init_kwargs={"learner_ctor": Qlearning, "render": False},
+            init_kwargs={
+                "learner_ctor": Qlearning,
+                "render": False,
+                "track_group_risk": plot_group_risk,
+            },
             eval_kwargs=eval_kwargs,
             agent_name="Qlearning",
         )
@@ -94,16 +100,27 @@ if __name__ == "__main__":
 
     multi_manager.run()
 
-    opti_average_reward = get_opti_average_reward(env_name, budget)
-    print(opti_average_reward)
+    if plot_regret:
+        opti_average_reward = get_opti_average_reward(env_name, budget)
+        print(opti_average_reward)
 
     _ = plot_writer_data(
         multi_manager.managers,
         tag="rewards",
-        title="Training Regret",
-        preprocess_func=lambda x: np.cumsum(opti_average_reward - x),
+        title="Training Regret" if plot_regret else "Training Cumulated Reward",
+        preprocess_func=lambda x: np.cumsum(opti_average_reward - x)
+        if plot_regret
+        else np.cumsum(x),
         show=True,
-        plot_raw_curves=True,
     )
+
+    if plot_group_risk:
+        _ = plot_writer_data(
+            multi_manager.managers,
+            tag="group_risk",
+            title="Group Risk",
+            preprocess_func=lambda x: x,
+            show=True,
+        )
 
     evaluate_agents(multi_manager.managers, plot=True, show=True)

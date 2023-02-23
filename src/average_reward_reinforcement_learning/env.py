@@ -2,10 +2,16 @@ import gym
 from gym.envs.registration import register
 import numpy as np
 from environments.discreteMDPs.gymWrapper import DiscreteMDP, Dirac
+from tqdm import tqdm
 
 
 class ForestMDP(DiscreteMDP):
     def __init__(self, nbGrowState, nbNeighbors, Pg, Pw, name="ForestMDP"):
+        self.group_risk_weights = [
+            2 * (nbGrowState - 1 - i) / (nbGrowState * (nbGrowState - 1))
+            for i in range(nbGrowState)
+        ]
+
         self.nbNeighbors = nbNeighbors
         self.nbGrowState = nbGrowState
         self.Pg = Pg
@@ -35,7 +41,7 @@ class ForestMDP(DiscreteMDP):
         )
 
     def init_P_and_rewards(self):
-        for i in self.states:
+        for i in tqdm(self.states, desc="Initializing ForestMDP"):
             self.P[i] = {}
             self.rewards[i] = {}
             for a in self.actions:
@@ -89,7 +95,7 @@ class ForestMDP(DiscreteMDP):
         return state
 
 
-class GroupRiskForestMDP(ForestMDP):
+class LocalForestMDP(ForestMDP):
     def __init__(self, nbGrowState, nbNeighbors, Pg, Pw, name="GroupRiskForestMDP"):
         super().__init__(nbGrowState, nbNeighbors, Pg, Pw, name)
 
@@ -164,10 +170,10 @@ def register_forestmdp(
                 "name": name,
             },
         )
-    elif model_type == "group_risk":
+    elif model_type == "local":
         register(
             id=name,
-            entry_point="env:GroupRiskForestMDP",
+            entry_point="env:LocalForestMDP",
             max_episode_steps=np.infty,
             reward_threshold=np.infty,
             kwargs={
@@ -179,5 +185,5 @@ def register_forestmdp(
             },
         )
     else:
-        raise ValueError("model_type must be either independent or group_risk")
+        raise ValueError("model_type must be either independent or local")
     return name
