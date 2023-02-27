@@ -11,7 +11,7 @@ import numpy as np
 import environments.RegisterEnvironments as bW
 from env import register_forestmdp
 
-from agent import ARRLAgent, OptAgent
+from agents import ARRLAgent, OptAgent
 from learners.discreteMDPs.IRL import IRL
 from learners.Generic.Qlearning import Qlearning
 from learners.discreteMDPs.PSRL import PSRL
@@ -43,22 +43,21 @@ def get_opti_average_reward(env_name, budget):
     return opti_average_rewards.mean()
 
 
+gamma = 1.0
+n_fit = 3
+budget = 10000
+plot_regret = True
+plot_group_risk = True
+
+# env_name = bW.registerWorld("random-100")
+env_name = register_forestmdp(
+    nbGrowState=10, nbNeighbors=3, Pg=0.95, Pw=0.05, model_type="independent"
+)
+
 if __name__ == "__main__":
-    gamma = 1.0
-    n_fit = 10
-    budget = 100
-    alpha = 0.5
-    plot_regret = False
-    plot_group_risk = True
-
-    # env_name = bW.registerWorld("random-100")
-    env_name = register_forestmdp(
-        nbGrowState=50, nbNeighbors=2, Pg=0.95, Pw=0.1, model_type="independent"
-    )
-
     eval_kwargs = dict(eval_horizon=100, n_simulations=20, metric="cvar")
 
-    multi_manager = MultipleManagers(parallelization="process", mp_context="fork")
+    multi_manager = MultipleManagers(parallelization="process")
     """
     multi_manager.append(
         AgentManager(

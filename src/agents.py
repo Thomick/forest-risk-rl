@@ -37,7 +37,7 @@ class ARRLAgent(AgentWithSimplePolicy):
             state = observation
             action = self.policy(state)  # Get action
             observation, reward, done, info = self.env.step(action)
-            self.learner.update(state, action, reward, observation)  # Update learners
+            self.update_learner(state, action, reward, observation)  # Update learners
             # print("info:",info, "reward:", reward)
             episode_rewards += reward
             try:
@@ -85,6 +85,9 @@ class ARRLAgent(AgentWithSimplePolicy):
 
     def policy(self, observation):
         return self.learner.play(observation)
+
+    def update_learner(self, state, action, reward, next_state):
+        self.learner.update(state, action, reward, next_state)
 
     def eval(self, metric="reward", **kwargs):
         if metric == "reward":
