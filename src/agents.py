@@ -27,11 +27,8 @@ class ARRLAgent(AgentWithSimplePolicy):
     def fit(self, budget, **kwargs):
         observation = self.env.reset()
         self.learner.reset(observation)
-        # cumrewards = []
         episode_means = 0.0
         episode_rewards = 0.0
-        # cummeans = []
-        # print("Initial state:" + str(observation))
         for t in range(budget):
             self.global_step += 1
             state = observation
@@ -44,8 +41,6 @@ class ARRLAgent(AgentWithSimplePolicy):
                 episode_means += info["mean"]
             except TypeError:
                 episode_means += reward
-            # cumrewards.append(cumreward)
-            # cummeans.append(cummean)
             total_episodes = 0
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
@@ -94,6 +89,8 @@ class ARRLAgent(AgentWithSimplePolicy):
             return super().eval(**kwargs)
         elif metric == "cvar":
             return self.eval_cvar(**kwargs)
+        elif metric == "group_risk":
+            return self.eval_group_risk(**kwargs)
 
     def eval_cvar(self, eval_horizon=10**5, n_simulations=10, gamma=1.0, alpha=0.05):
         reward_samples = []
@@ -108,6 +105,25 @@ class ARRLAgent(AgentWithSimplePolicy):
                 if done:
                     break
         return compute_empirical_cvar(reward_samples, alpha)
+
+    def eval_group_risk(self, eval_horizon=10**5, n_simulations=10):
+        grouprisk_sample = []
+        for sim in range(n_simulations):
+            observation = self.eval_env.reset()
+            tt = 0
+            while tt < eval_horizon:
+                action = self.policy(observation)
+                observation, reward, done, _ = self.eval_env.step(action)
+                grouprisk_sample.append(
+                    compute_group_risk(
+                        self.env.index_to_state(observation),
+                        self.env.group_risk_weights,
+                    )
+                )
+                tt += 1
+                if done:
+                    break
+        return np.mean(grouprisk_sample)
 
 
 class OptAgent(AgentWithSimplePolicy):

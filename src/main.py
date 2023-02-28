@@ -12,6 +12,7 @@ import environments.RegisterEnvironments as bW
 from env import register_forestmdp
 
 from agents import ARRLAgent, OptAgent
+from grouprisk_agent import ForestGRAgent
 from learners.discreteMDPs.IRL import IRL
 from learners.Generic.Qlearning import Qlearning
 from learners.discreteMDPs.PSRL import PSRL
@@ -44,20 +45,22 @@ def get_opti_average_reward(env_name, budget):
 
 
 gamma = 1.0
-n_fit = 3
+n_fit = 20
 budget = 10000
-plot_regret = True
+plot_regret = False
 plot_group_risk = True
+alpha = 0.1  # CVaR quantile
+beta = 0.5  # Risk coefficient
 
 # env_name = bW.registerWorld("random-100")
 env_name = register_forestmdp(
-    nbGrowState=10, nbNeighbors=3, Pg=0.95, Pw=0.05, model_type="independent"
+    nbGrowState=10, nbNeighbors=2, Pg=0.95, Pw=0.05, model_type="local"
 )
 
 if __name__ == "__main__":
-    eval_kwargs = dict(eval_horizon=100, n_simulations=20, metric="cvar")
+    eval_kwargs = dict(eval_horizon=100, n_simulations=20, metric="group_risk")
 
-    multi_manager = MultipleManagers(parallelization="process")
+    multi_manager = MultipleManagers(parallelization="process", max_workers=12)
     """
     multi_manager.append(
         AgentManager(
@@ -94,6 +97,22 @@ if __name__ == "__main__":
             },
             eval_kwargs=eval_kwargs,
             agent_name="Qlearning",
+        )
+    )
+    multi_manager.append(
+        AgentManager(
+            ForestGRAgent,
+            (gym_make, dict(id=env_name)),
+            n_fit=n_fit,
+            fit_budget=budget,
+            init_kwargs={
+                "learner_ctor": Qlearning,
+                "render": False,
+                "track_group_risk": plot_group_risk,
+                "beta": beta,
+            },
+            eval_kwargs=eval_kwargs,
+            agent_name="Qlearning GR",
         )
     )
 
