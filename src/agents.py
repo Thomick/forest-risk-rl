@@ -1,5 +1,6 @@
 from rlberry.agents import Agent, AgentWithSimplePolicy
 from learners.discreteMDPs.OptimalControl import Opti_controller
+from learners.Generic.Random import Random
 from rlberry.utils.writers import DefaultWriter
 from rlberry.seeding.seeder import Seeder
 import numpy as np
@@ -60,10 +61,7 @@ class ARRLAgent(AgentWithSimplePolicy):
                     print("No writer")
                 episode_rewards = 0.0
                 episode_means = 0.0
-            if (
-                self.writer is not None
-                and self.global_step % (max(1, budget // 1000)) == 0
-            ):
+            if self.writer is not None:
                 self.writer.add_scalar("rewards", reward, self.global_step)
                 if self.track_group_risk:
                     self.writer.add_scalar(
@@ -156,3 +154,22 @@ class OptAgent(AgentWithSimplePolicy):
 
     def policy(self, observation):
         return self.opti_controller.play(observation)
+
+
+class Random:
+    def __init__(self, nS, nA, name="Random Agent"):
+        self.nS = nS
+        self.nA = nA
+        self.agentname = name
+
+    def name(self):
+        return self.agentname
+
+    def reset(self, inistate):
+        ()
+
+    def play(self, state):
+        return np.random.randint(self.nA)
+
+    def update(self, state, action, reward, observation):
+        ()

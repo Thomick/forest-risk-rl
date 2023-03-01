@@ -16,4 +16,4 @@ def compute_group_risk(state, weights):
             bucket[state[i]] = 1
         else:
             bucket[state[i]] += 1
-    return np.exp(-np.sum([weights[i] * bucket[i] for i in bucket]))
+    return np.exp(np.sum([weights[i] * bucket[i] for i in bucket]))

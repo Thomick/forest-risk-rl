@@ -11,8 +11,8 @@ import numpy as np
 import environments.RegisterEnvironments as bW
 from env import register_forestmdp
 
-from agents import ARRLAgent, OptAgent
-from grouprisk_agent import ForestGRAgent
+from agents import ARRLAgent, OptAgent, Random
+from grouprisk_agent import ForestGRAgent, ForestGROnlyAgent
 from learners.discreteMDPs.IRL import IRL
 from learners.Generic.Qlearning import Qlearning
 from learners.discreteMDPs.PSRL import PSRL
@@ -45,12 +45,12 @@ def get_opti_average_reward(env_name, budget):
 
 
 gamma = 1.0
-n_fit = 20
-budget = 10000
+n_fit = 10
+budget = 1000
 plot_regret = False
 plot_group_risk = True
 alpha = 0.1  # CVaR quantile
-beta = 0.5  # Risk coefficient
+beta = 0.5  # Risk parameter (scale group-risk malus term)
 
 # env_name = bW.registerWorld("random-100")
 env_name = register_forestmdp(
@@ -58,32 +58,10 @@ env_name = register_forestmdp(
 )
 
 if __name__ == "__main__":
-    eval_kwargs = dict(eval_horizon=100, n_simulations=20, metric="group_risk")
+    eval_kwargs = dict(eval_horizon=1000, n_simulations=20, metric="group_risk")
 
-    multi_manager = MultipleManagers(parallelization="process", max_workers=12)
-    """
-    multi_manager.append(
-        AgentManager(
-            ARRLAgent,
-            (gym_make, dict(id=env_name)),
-            n_fit=n_fit,
-            fit_budget=budget,
-            init_kwargs={"learner_ctor": IRL},
-            eval_kwargs=eval_kwargs,
-            agent_name="IRL",
-        )
-    )
-    multi_manager.append(
-        AgentManager(
-            ARRLAgent,
-            (gym_make, dict(id=env_name)),
-            n_fit=n_fit,
-            fit_budget=budget,
-            init_kwargs={"learner_ctor": PSRL, "learner_args": {"delta": 0.05}},
-            eval_kwargs=eval_kwargs,
-            agent_name="PSRL",
-        )
-    )"""
+    multi_manager = MultipleManagers(parallelization="process", max_workers=1)
+
     multi_manager.append(
         AgentManager(
             ARRLAgent,
@@ -93,12 +71,12 @@ if __name__ == "__main__":
             init_kwargs={
                 "learner_ctor": Qlearning,
                 "render": False,
-                "track_group_risk": plot_group_risk,
             },
             eval_kwargs=eval_kwargs,
             agent_name="Qlearning",
         )
     )
+
     multi_manager.append(
         AgentManager(
             ForestGRAgent,
@@ -113,6 +91,38 @@ if __name__ == "__main__":
             },
             eval_kwargs=eval_kwargs,
             agent_name="Qlearning GR",
+        )
+    )
+
+    multi_manager.append(
+        AgentManager(
+            ForestGROnlyAgent,
+            (gym_make, dict(id=env_name)),
+            n_fit=n_fit,
+            fit_budget=budget,
+            init_kwargs={
+                "learner_ctor": Qlearning,
+                "render": False,
+                "track_group_risk": plot_group_risk,
+            },
+            eval_kwargs=eval_kwargs,
+            agent_name="Qlearning GR Only",
+        )
+    )
+
+    multi_manager.append(
+        AgentManager(
+            ARRLAgent,
+            (gym_make, dict(id=env_name)),
+            n_fit=n_fit,
+            fit_budget=budget,
+            init_kwargs={
+                "learner_ctor": Random,
+                "render": False,
+                "track_group_risk": plot_group_risk,
+            },
+            eval_kwargs=eval_kwargs,
+            agent_name="Random",
         )
     )
 
