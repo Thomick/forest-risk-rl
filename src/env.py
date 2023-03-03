@@ -1,7 +1,7 @@
 import gym
 from gym.envs.registration import register
 import numpy as np
-from environments.discreteMDPs.gymWrapper import DiscreteMDP, Dirac
+from envs.discreteMDPs.gymWrapper import DiscreteMDP, Dirac
 
 
 class ForestMDP(DiscreteMDP):

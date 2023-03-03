@@ -1,16 +1,13 @@
-
-from environments.discreteMDPs.utils import *
+from envs.discreteMDPs.utils import *
 import string
 
 from gym import Env, spaces
 from gym.utils import seeding
 from gym import utils
 
-import environments.discreteMDPs.rendering.networkxRenderer as gRendering
-import environments.discreteMDPs.rendering.textRenderer as tRendering
-import environments.discreteMDPs.rendering.pydotRenderer as dRendering
-
-
+import envs.discreteMDPs.rendering.networkxRenderer as gRendering
+import envs.discreteMDPs.rendering.textRenderer as tRendering
+import envs.discreteMDPs.rendering.pydotRenderer as dRendering
 
 
 class DiscreteMDP(Env):
@@ -31,9 +28,10 @@ class DiscreteMDP(Env):
 
     """
 
-
-    def __init__(self, nS, nA, P, R, isd, nameActions=[], seed=None, name="DiscreteMDP"):
-        self.name=name
+    def __init__(
+        self, nS, nA, P, R, isd, nameActions=[], seed=None, name="DiscreteMDP"
+    ):
+        self.name = name
         self.nS = nS
         self.nA = nA
         self.P = P
@@ -50,14 +48,19 @@ class DiscreteMDP(Env):
 
         # Rendering parameters and variables:
         self.lastaction = None
-        self.lastreward = 0.
+        self.lastreward = 0.0
 
-        self.rendermode = 'text'
+        self.rendermode = "text"
         self.initializedRenderer = False
-        self.renderers = {'':(), 'text': tRendering.textRenderer, 'networkx': gRendering.GraphRenderer, 'pydot': dRendering.pydotRenderer}
+        self.renderers = {
+            "": (),
+            "text": tRendering.textRenderer,
+            "networkx": gRendering.GraphRenderer,
+            "pydot": dRendering.pydotRenderer,
+        }
         self.nameActions = nameActions
-        if (len(nameActions) != nA):
-            self.nameActions = list(string.ascii_uppercase)[0:min(nA, 26)]
+        if len(nameActions) != nA:
+            self.nameActions = list(string.ascii_uppercase)[0 : min(nA, 26)]
 
         # Initialization
         self.seed(seed)
@@ -88,7 +91,7 @@ class DiscreteMDP(Env):
         self.s = s
         self.lastaction = a
         self.lastreward = r
-        return (s, r, d, {"mean":m})
+        return (s, r, d, {"mean": m})
 
     def getTransition(self, s, a):
         transition = np.zeros(self.nS)
@@ -114,19 +117,17 @@ class DiscreteMDP(Env):
     #         self.renderer.render(self, self.s, self.lastaction,
     #                              self.lastreward)
 
-
-    def render(self, mode='human'):
+    def render(self, mode="human"):
         #     #Note that default mode is 'human' for open-ai-gym
-        if ((not self.initializedRenderer)):
-                try:
-                    self.renderer = self.renderers[self.rendermode]()
-                except KeyError:
-                    print("Invalid key '"+self.rendermode+"'. Please use one of the folling keys: ", str([x for x in self.renderers.keys()]))
-                self.initializedRenderer = True
-        self.renderer.render(self, self.s, self.lastaction,
-                                 self.lastreward)
-
-
-
-
-
+        if not self.initializedRenderer:
+            try:
+                self.renderer = self.renderers[self.rendermode]()
+            except KeyError:
+                print(
+                    "Invalid key '"
+                    + self.rendermode
+                    + "'. Please use one of the folling keys: ",
+                    str([x for x in self.renderers.keys()]),
+                )
+            self.initializedRenderer = True
+        self.renderer.render(self, self.s, self.lastaction, self.lastreward)

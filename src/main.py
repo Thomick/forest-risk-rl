@@ -8,14 +8,12 @@ from rlberry.manager import (
 from rlberry.envs import gym_make
 import numpy as np
 
-import environments.RegisterEnvironments as bW
+import envs.RegisterEnvironments as bW
 from env import register_forestmdp
 
 from agents import ARRLAgent, OptAgent, Random
 from grouprisk_agent import ForestGRAgent, ForestGROnlyAgent
-from learners.discreteMDPs.IRL import IRL
 from learners.Generic.Qlearning import Qlearning
-from learners.discreteMDPs.PSRL import PSRL
 
 import matplotlib.pyplot as plt
 
@@ -60,7 +58,7 @@ env_name = register_forestmdp(
 if __name__ == "__main__":
     eval_kwargs = dict(eval_horizon=1000, n_simulations=20, metric="group_risk")
 
-    multi_manager = MultipleManagers(parallelization="process", max_workers=1)
+    multi_manager = MultipleManagers(parallelization="process")
 
     multi_manager.append(
         AgentManager(

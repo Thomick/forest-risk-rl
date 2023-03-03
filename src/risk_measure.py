@@ -1,7 +1,5 @@
 import numpy as np
 
-from rlberry.agents import AgentWithSimplePolicy
-
 
 def compute_empirical_cvar(x, alpha):
     x = np.sort(x)

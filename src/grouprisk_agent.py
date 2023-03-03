@@ -1,4 +1,4 @@
-from risk import compute_empirical_cvar, compute_group_risk
+from risk_measure import compute_group_risk
 from agents import ARRLAgent
 
 

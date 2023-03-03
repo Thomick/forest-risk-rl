@@ -1,11 +1,11 @@
-
-from environments.discreteMDPs.gymWrapper import DiscreteMDP
-from environments.discreteMDPs.gymWrapper import Dirac
+from envs.discreteMDPs.gymWrapper import DiscreteMDP
+from envs.discreteMDPs.gymWrapper import Dirac
 import scipy.stats as stat
 import numpy as np
 
+
 class ThreeState(DiscreteMDP):
-    def __init__(self, delta=0.005, fixed_reward=True,name="ThreeState"):
+    def __init__(self, delta=0.005, fixed_reward=True, name="ThreeState"):
         self.nS = 3
         self.nA = 2
         self.states = range(0, self.nS)
@@ -13,7 +13,7 @@ class ThreeState(DiscreteMDP):
         self.nameActions = ["R", "L"]
 
         self.startdistribution = np.zeros((self.nS))
-        self.startdistribution[0] = 1.
+        self.startdistribution[0] = 1.0
         self.rewards = {}
         self.P = {}
         self.transitions = {}
@@ -27,8 +27,8 @@ class ThreeState(DiscreteMDP):
         self.P[s][0] = []  # 0=right", 1=left
         self.P[s][0].append((delta, 1, False))
         self.transitions[s][0][1] = delta
-        self.P[s][0].append((1. - delta, 2, False))
-        self.transitions[s][0][2] = 1. - delta
+        self.P[s][0].append((1.0 - delta, 2, False))
+        self.transitions[s][0][2] = 1.0 - delta
         # Action 1 is just the same for s = 0 and s = 1
         self.P[s][1] = []  # 0=right", 1=left
         self.transitions[s][1] = self.transitions[s][0]
@@ -36,11 +36,11 @@ class ThreeState(DiscreteMDP):
         # reward
         self.rewards[s] = {}
         if fixed_reward:
-            self.rewards[s][0] = Dirac(0.)
-            self.rewards[s][1] = Dirac(0.)
+            self.rewards[s][0] = Dirac(0.0)
+            self.rewards[s][1] = Dirac(0.0)
         else:
-            self.rewards[s][0] = Dirac(0.)
-            self.rewards[s][1] = Dirac(0.)
+            self.rewards[s][0] = Dirac(0.0)
+            self.rewards[s][1] = Dirac(0.0)
 
         s = 1
         self.P[s] = {}
@@ -48,8 +48,8 @@ class ThreeState(DiscreteMDP):
         # Action 0
         self.transitions[s][0] = {}
         self.P[s][0] = []  # 0=right", 1=left
-        self.P[s][0].append((1., 0, False))
-        self.transitions[s][0][0] = 1.
+        self.P[s][0].append((1.0, 0, False))
+        self.transitions[s][0][0] = 1.0
         # Action 1 which just the same for s = 0 and s = 1
         self.P[s][1] = []  # 0=right", 1=left
         self.transitions[s][1] = self.transitions[s][0]
@@ -57,11 +57,11 @@ class ThreeState(DiscreteMDP):
         # reward
         self.rewards[s] = {}
         if fixed_reward:
-            self.rewards[s][0] = Dirac(1. / 3.)
-            self.rewards[s][1] = Dirac(1. / 3.)
+            self.rewards[s][0] = Dirac(1.0 / 3.0)
+            self.rewards[s][1] = Dirac(1.0 / 3.0)
         else:
-            self.rewards[s][0] = stat.bernoulli(1. / 3.)
-            self.rewards[s][1] = stat.bernoulli(1. / 3.)
+            self.rewards[s][0] = stat.bernoulli(1.0 / 3.0)
+            self.rewards[s][1] = stat.bernoulli(1.0 / 3.0)
 
         s = 2
         self.P[s] = {}
@@ -69,31 +69,38 @@ class ThreeState(DiscreteMDP):
         # Action 0
         self.transitions[s][0] = {}
         self.P[s][0] = []  # 0=right", 1=left
-        self.P[s][0].append((1., 2, False))
-        self.transitions[s][0][2] = 1.
+        self.P[s][0].append((1.0, 2, False))
+        self.transitions[s][0][2] = 1.0
         # Action 1 which just the same for s = 0 and s = 1
         self.transitions[s][1] = {}
         self.P[s][1] = []  # 0=right", 1=left
         self.P[s][1].append((delta, 1, False))
         self.transitions[s][1][1] = delta
-        self.P[s][1].append((1. - delta, 0, False))
-        self.transitions[s][1][0] = 1. - delta
+        self.P[s][1].append((1.0 - delta, 0, False))
+        self.transitions[s][1][0] = 1.0 - delta
         # reward
         self.rewards[s] = {}
         if fixed_reward:
-            self.rewards[s][0] = Dirac(2. / 3.)
-            self.rewards[s][1] = Dirac(2. / 3.)
+            self.rewards[s][0] = Dirac(2.0 / 3.0)
+            self.rewards[s][1] = Dirac(2.0 / 3.0)
         else:
-            self.rewards[s][0] = stat.bernoulli(2. / 3.)
-            self.rewards[s][1] = stat.bernoulli(2. / 3.)
+            self.rewards[s][0] = stat.bernoulli(2.0 / 3.0)
+            self.rewards[s][1] = stat.bernoulli(2.0 / 3.0)
 
         # print("Rewards : ", self.rewards, "\nTransitions : ", self.transitions)
-        super(ThreeState, self).__init__(self.nS, self.nA, self.P, self.rewards, self.startdistribution,
-                                         self.nameActions,name=name)
+        super(ThreeState, self).__init__(
+            self.nS,
+            self.nA,
+            self.P,
+            self.rewards,
+            self.startdistribution,
+            self.nameActions,
+            name=name,
+        )
 
 
 class Nasty(DiscreteMDP):
-    def __init__(self, delta=0.005, epsilon=0.005, fixed_reward=True,name="Nasty"):
+    def __init__(self, delta=0.005, epsilon=0.005, fixed_reward=True, name="Nasty"):
         self.nS = 7
         self.nA = 2
         self.states = range(0, self.nS)
@@ -101,7 +108,7 @@ class Nasty(DiscreteMDP):
         self.nameActions = ["R", "L"]
 
         self.startdistribution = np.zeros((self.nS))
-        self.startdistribution[0] = 1.
+        self.startdistribution[0] = 1.0
         # 231 0 456
         self.rewards = {}
         self.P = {}
@@ -118,23 +125,23 @@ class Nasty(DiscreteMDP):
         self.P[s][0] = []  # 0=right", 1=left
         self.P[s][0].append((delta, 0, False))
         self.transitions[s][0][0] = delta
-        self.P[s][0].append((1. - delta, 1, False))
-        self.transitions[s][0][1] = 1. - delta
+        self.P[s][0].append((1.0 - delta, 1, False))
+        self.transitions[s][0][1] = 1.0 - delta
         # Action 1 is
         self.transitions[s][1] = {}
         self.P[s][1] = []  # 0=right", 1=left
         self.P[s][1].append((delta, 0, False))
         self.transitions[s][1][0] = delta
-        self.P[s][1].append((1. - delta, 4, False))
-        self.transitions[s][1][4] = 1. - delta
+        self.P[s][1].append((1.0 - delta, 4, False))
+        self.transitions[s][1][4] = 1.0 - delta
         # reward
         self.rewards[s] = {}
         if fixed_reward:
-            self.rewards[s][0] = Dirac(0.)
-            self.rewards[s][1] = Dirac(0.)
+            self.rewards[s][0] = Dirac(0.0)
+            self.rewards[s][1] = Dirac(0.0)
         else:
-            self.rewards[s][0] = Dirac(0.)
-            self.rewards[s][1] = Dirac(0.)
+            self.rewards[s][0] = Dirac(0.0)
+            self.rewards[s][1] = Dirac(0.0)
 
         s = 1
         self.P[s] = {}
@@ -159,15 +166,14 @@ class Nasty(DiscreteMDP):
             self.rewards[s][0] = stat.bernoulli(0.99)
             self.rewards[s][1] = stat.bernoulli(0.99)
 
-
         s = 2
         self.P[s] = {}
         self.transitions[s] = {}
         # Action 0
         self.transitions[s][0] = {}
         self.P[s][0] = []  # 0=right", 1=left
-        self.P[s][0].append((1., 3, False))
-        self.transitions[s][0][3] = 1.
+        self.P[s][0].append((1.0, 3, False))
+        self.transitions[s][0][3] = 1.0
         # Action 1 which just the same for s = 0 and s = 1
         self.P[s][1] = []  # 0=right", 1=left
         self.transitions[s][1] = self.transitions[s][0]
@@ -187,8 +193,8 @@ class Nasty(DiscreteMDP):
         # Action 0
         self.transitions[s][0] = {}
         self.P[s][0] = []  # 0=right", 1=left
-        self.P[s][0].append((1., 1, False))
-        self.transitions[s][0][1] = 1.
+        self.P[s][0].append((1.0, 1, False))
+        self.transitions[s][0][1] = 1.0
         # Action 1 which just the same for s = 0 and s = 1
         self.P[s][1] = []  # 0=right", 1=left
         self.transitions[s][1] = self.transitions[s][0]
@@ -219,12 +225,11 @@ class Nasty(DiscreteMDP):
         # reward
         self.rewards[s] = {}
         if fixed_reward:
-            self.rewards[s][0] = Dirac(0.99-epsilon)
-            self.rewards[s][1] = Dirac(0.99-epsilon)
+            self.rewards[s][0] = Dirac(0.99 - epsilon)
+            self.rewards[s][1] = Dirac(0.99 - epsilon)
         else:
-            self.rewards[s][0] = stat.bernoulli(0.99-epsilon)
-            self.rewards[s][1] = stat.bernoulli(0.99-epsilon)
-
+            self.rewards[s][0] = stat.bernoulli(0.99 - epsilon)
+            self.rewards[s][1] = stat.bernoulli(0.99 - epsilon)
 
         s = 5
         self.P[s] = {}
@@ -232,8 +237,8 @@ class Nasty(DiscreteMDP):
         # Action 0
         self.transitions[s][0] = {}
         self.P[s][0] = []  # 0=right", 1=left
-        self.P[s][0].append((1., 6, False))
-        self.transitions[s][0][6] = 1.
+        self.P[s][0].append((1.0, 6, False))
+        self.transitions[s][0][6] = 1.0
         # Action 1 which just the same for s = 0 and s = 1
         self.P[s][1] = []  # 0=right", 1=left
         self.transitions[s][1] = self.transitions[s][0]
@@ -241,13 +246,11 @@ class Nasty(DiscreteMDP):
         # reward
         self.rewards[s] = {}
         if fixed_reward:
-            self.rewards[s][0] = Dirac(0.99-epsilon)
-            self.rewards[s][1] = Dirac(0.99-epsilon)
+            self.rewards[s][0] = Dirac(0.99 - epsilon)
+            self.rewards[s][1] = Dirac(0.99 - epsilon)
         else:
-            self.rewards[s][0] = stat.bernoulli(0.99-epsilon)
-            self.rewards[s][1] = stat.bernoulli(0.99-epsilon)
-
-
+            self.rewards[s][0] = stat.bernoulli(0.99 - epsilon)
+            self.rewards[s][1] = stat.bernoulli(0.99 - epsilon)
 
         s = 6
         self.P[s] = {}
@@ -255,8 +258,8 @@ class Nasty(DiscreteMDP):
         # Action 0
         self.transitions[s][0] = {}
         self.P[s][0] = []  # 0=right", 1=left
-        self.P[s][0].append((1., 4, False))
-        self.transitions[s][0][4] = 1.
+        self.P[s][0].append((1.0, 4, False))
+        self.transitions[s][0][4] = 1.0
         # Action 1 which just the same for s = 0 and s = 1
         self.P[s][1] = []  # 0=right", 1=left
         self.transitions[s][1] = self.transitions[s][0]
@@ -264,13 +267,19 @@ class Nasty(DiscreteMDP):
         # reward
         self.rewards[s] = {}
         if fixed_reward:
-            self.rewards[s][0] = Dirac(0.99-epsilon)
-            self.rewards[s][1] = Dirac(0.99-epsilon)
+            self.rewards[s][0] = Dirac(0.99 - epsilon)
+            self.rewards[s][1] = Dirac(0.99 - epsilon)
         else:
-            self.rewards[s][0] = stat.bernoulli(0.99-epsilon)
-            self.rewards[s][1] = stat.bernoulli(0.99-epsilon)
+            self.rewards[s][0] = stat.bernoulli(0.99 - epsilon)
+            self.rewards[s][1] = stat.bernoulli(0.99 - epsilon)
 
         # print("Rewards : ", self.rewards, "\nTransitions : ", self.transitions)
-        super(Nasty, self).__init__(self.nS, self.nA, self.P, self.rewards, self.startdistribution,
-                                         self.nameActions,name=name)
-
+        super(Nasty, self).__init__(
+            self.nS,
+            self.nA,
+            self.P,
+            self.rewards,
+            self.startdistribution,
+            self.nameActions,
+            name=name,
+        )

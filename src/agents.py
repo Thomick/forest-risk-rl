@@ -1,10 +1,7 @@
-from rlberry.agents import Agent, AgentWithSimplePolicy
+from rlberry.agents import AgentWithSimplePolicy
 from learners.discreteMDPs.OptimalControl import Opti_controller
-from learners.Generic.Random import Random
-from rlberry.utils.writers import DefaultWriter
-from rlberry.seeding.seeder import Seeder
 import numpy as np
-from risk import compute_empirical_cvar, compute_group_risk
+from risk_measure import compute_empirical_cvar, compute_group_risk
 
 
 class ARRLAgent(AgentWithSimplePolicy):

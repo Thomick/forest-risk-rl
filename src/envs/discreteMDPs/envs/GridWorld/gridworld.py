@@ -6,15 +6,15 @@ import scipy.stats as stat
 # import matplotlib.pyplot as plt
 
 
-import environments.discreteMDPs.envs.GridWorld.rendering.pyplotRenderer as gwppRendering
-import environments.discreteMDPs.envs.GridWorld.rendering.textRenderer as gwtRendering
+import envs.discreteMDPs.envs.GridWorld.rendering.pyplotRenderer as gwppRendering
+import envs.discreteMDPs.envs.GridWorld.rendering.textRenderer as gwtRendering
 
 # from gym import utils
 # from gym.envs.toy_text import discrete
 # import environments.discreteMDPs.gymWrapper
 # from gym import Env, spaces
 # import string
-from environments.discreteMDPs.gymWrapper import *
+from envs.discreteMDPs.gymWrapper import *
 
 # from environments.discreteMDPs.gymWrapper import Dirac
 
