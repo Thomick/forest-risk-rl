@@ -14,7 +14,7 @@ In addition, the agent can only choose the action for one plot, the reward is on
 The main problem of this model is that the state space may become too large. The number of states is $n^k$ where $n$ is the number of age classes and $k$ is the number of plots. This does not allow yet to get an interesting behavior for now. I need to try another implementation that does not require that much states.
 
 # Loisel2014
-A more realistic model of forest growth "Average forest growth model". Dynamical system with two variables: density of the stand and average basal area (eventually the price of lumber which depend on the time since the last storm). It includes thinning which allows smoothing profits over time. Storms follow a Poisson process. However, the risk is independent of the states of neighboring plots. Allows to anticipate the constraints of the dynamical system for the forest model.
+A more realistic model of forest growth "Average forest growth model". Dynamical system with two variables: density of the stand and average basal area (optionally the price of lumber which depend on the time since the last storm). It includes thinning incomes which allows smoothing profits over time. Storms follow a Poisson process. However, the risk is independent of the states of neighboring plots. Allows to anticipate the constraints of the dynamical system for the forest model.
 Also features the Faustmann value which corresponds to the discounted value of cutting incomes minus the cost of replanting.
 
 # Couture2021
