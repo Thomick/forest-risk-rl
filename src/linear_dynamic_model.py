@@ -1,6 +1,8 @@
 import networkx as nx
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
+from tqdm import tqdm
 
 # Parameters for the experiments
 nb_tree = 10
@@ -8,15 +10,17 @@ col, row = 5, 5  # For grid structures
 alpha = 0.1
 beta = 0.05
 htop = 20  # Asymptotic height parameter for the trees
-nb_iter = 100  # Duration of the experiment
+nb_iter = 1000  # Duration of the experiment
 edge_probability = 0.2  # For random Erdos-Renyi graphes
 cutting_probability = 0.1
 cutting_threshold = htop + 1
+nb_samples = 1000  # grid experiment
 
 # Toggle experiments
 exp_complete_graph = True
 exp_random_graph = True
 exp_grid = True
+grid_plot_asymptotic = True
 exp_octo_grid = True
 exp_random_actions = True
 exp_cutting_threshold = True
@@ -67,7 +71,9 @@ def build_transition_matrix(adjacency_matrix, alpha, beta):
         for j in range(nb_tree):
             if adjacency_matrix[i, j] == 1:
                 transition_matrix[i, j] = -beta / nb_neighbors
-        transition_matrix[i, i] = 1 - alpha + beta
+        transition_matrix[i, i] = 1 - alpha
+        if nb_neighbors > 0:
+            transition_matrix[i, i] += beta
         transition_matrix[i, nb_tree] = alpha
     transition_matrix[nb_tree, nb_tree] = 1
     return transition_matrix
@@ -75,6 +81,10 @@ def build_transition_matrix(adjacency_matrix, alpha, beta):
 
 if exp_random_graph:
     adjacency_matrix = np.random.binomial(1, edge_probability, (nb_tree, nb_tree))
+    for i in range(nb_tree):  # Make it symmetric
+        for j in range(i, nb_tree):
+            adjacency_matrix[i, j] = adjacency_matrix[j, i]
+        adjacency_matrix[i, i] = 0
     transition_matrix = build_transition_matrix(adjacency_matrix, alpha, beta)
 
     s = np.random.uniform(0, htop, nb_tree + 1)
@@ -86,7 +96,7 @@ if exp_random_graph:
 
     plt.plot(states)
     plt.title(
-        f"{nb_tree} Trees with random graph (directed Erdős-Rényi with p={edge_probability}) structure"
+        f"{nb_tree} Trees with random graph (Erdős-Rényi with p={edge_probability}) structure"
     )
     plt.xlabel("Iteration")
     plt.ylabel("Height")
@@ -94,8 +104,8 @@ if exp_random_graph:
 
     G = graph_from_adjacency_matrix(adjacency_matrix)
     nx.draw(G, with_labels=True)
-    print(adjacency_matrix)
-    print(transition_matrix)
+    # print(adjacency_matrix)
+    # print(transition_matrix)
 
 plt.show()
 
@@ -116,7 +126,6 @@ def make_grid_matrix(rows, cols):
 
 
 if exp_grid:
-    col, row = 5, 5
     nb_tree = col * row
 
     adjacency_matrix = make_grid_matrix(row, col)
@@ -126,7 +135,7 @@ if exp_grid:
     s[nb_tree] = htop
 
     states = [s]
-    for i in range(nb_iter):
+    for i in tqdm(range(nb_iter), desc="Grid experiment"):
         s = transition_matrix @ s
         states.append(s)
 
@@ -136,15 +145,34 @@ if exp_grid:
     plt.ylabel("Height")
     plt.figure()
 
-    plt.imshow(
+    pos = plt.imshow(
         s[:-1].reshape((row, col)),
         cmap="hot",
         interpolation="nearest",
     )
+    plt.colorbar(pos, format="%.2f")
     plt.title("Heightmap of the forest at the end of the simulation")
-    print(adjacency_matrix)
+    # print(adjacency_matrix)
 
-plt.show()
+    if grid_plot_asymptotic:
+        plt.figure()
+        samples_high = []
+        samples_low = []
+        for _ in range(nb_samples):
+            s = np.random.uniform(0, htop, nb_tree + 1)
+            s[nb_tree] = htop
+            for i in range(1000):
+                s = transition_matrix @ s
+
+            for i in range(nb_tree):
+                if s[i] > htop:
+                    samples_high.append(s[i])
+                else:
+                    samples_low.append(s[i])
+        sns.histplot(samples_high, label="High")
+        sns.histplot(samples_low, label="Low")
+
+    plt.show()
 
 
 def make_octo_grid_matrix(rows, cols):
@@ -167,7 +195,6 @@ def make_octo_grid_matrix(rows, cols):
 
 
 if exp_octo_grid:
-    col, row = 5, 5
     nb_tree = col * row
 
     adjacency_matrix = make_octo_grid_matrix(row, col)
@@ -177,7 +204,7 @@ if exp_octo_grid:
     s[nb_tree] = htop
 
     states = [s]
-    for i in range(nb_iter):
+    for i in tqdm(range(nb_iter), desc="Octo grid experiment"):
         s = transition_matrix @ s
         states.append(s)
 
@@ -187,13 +214,14 @@ if exp_octo_grid:
     plt.ylabel("Height")
     plt.figure()
 
-    plt.imshow(
+    pos = plt.imshow(
         s[:-1].reshape((row, col)),
         cmap="hot",
         interpolation="nearest",
     )
     plt.title("Heightmap of the forest at the end of the simulation")
-    print(adjacency_matrix)
+    plt.colorbar(pos)
+    # print(adjacency_matrix)
 
     """
     plt.figure()
@@ -207,7 +235,7 @@ if exp_octo_grid:
 #######################
 # With random cuttings
 if exp_random_actions:
-    row, col = 5, 5
+    row, col = 3, 3
     nb_tree = col * row
     adjacency_matrix = make_octo_grid_matrix(row, col)
     transition_matrix = build_transition_matrix(adjacency_matrix, alpha, beta)
@@ -247,7 +275,7 @@ if exp_cutting_threshold:
         states.append(s)
 
     plt.plot(states)
-    plt.title(f"{row}x{col} grid (8 neighbors) structure with random cuttings")
+    plt.title(f"{row}x{col} grid (8 neighbors) structure with cutting threshold")
     plt.xlabel("Iteration")
     plt.ylabel("Height")
     plt.show()
