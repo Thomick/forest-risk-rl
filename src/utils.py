@@ -1,0 +1,32 @@
+import numpy as np
+
+
+def make_grid_matrix(rows, cols):
+    n = rows * cols
+    M = np.zeros((n, n))
+    for r in range(rows):
+        for c in range(cols):
+            i = r * cols + c
+            # Two inner diagonals
+            if c > 0:
+                M[i - 1, i] = M[i, i - 1] = 1
+            # Two outer diagonals
+            if r > 0:
+                M[i - cols, i] = M[i, i - cols] = 1
+    return M
+
+
+def build_transition_matrix(adjacency_matrix, alpha, beta):
+    nb_tree = adjacency_matrix.shape[0]
+    transition_matrix = np.zeros((nb_tree + 1, nb_tree + 1))
+    for i in range(nb_tree):
+        nb_neighbors = np.sum(adjacency_matrix[i, :]) - adjacency_matrix[i, i]
+        for j in range(nb_tree):
+            if adjacency_matrix[i, j] == 1:
+                transition_matrix[i, j] = -beta / nb_neighbors
+        transition_matrix[i, i] = 1 - alpha
+        if nb_neighbors > 0:
+            transition_matrix[i, i] += beta
+        transition_matrix[i, nb_tree] = alpha
+    transition_matrix[nb_tree, nb_tree] = 1
+    return transition_matrix

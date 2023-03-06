@@ -15,6 +15,7 @@ The main problem of this model is that the state space may become too large. The
 
 # Loisel2014
 A more realistic model of forest growth "Average forest growth model". Dynamical system with two variables: density of the stand and average basal area (eventually the price of lumber which depend on the time since the last storm). It includes thinning which allows smoothing profits over time. Storms follow a Poisson process. However, the risk is independent of the states of neighboring plots. Allows to anticipate the constraints of the dynamical system for the forest model.
+Also features the Faustmann value which corresponds to the discounted value of cutting incomes minus the cost of replanting.
 
-# Fei2020
-The authors propose algorithms derived from LSVI and Q-Learning based on alternative value functions that consider an exponential utility function as an objective (the value functions are not linear contrary to the risk-neutral setting).
+# Couture2021
+Multi-objective forest management. Defines reward functions for the different ecosystem services such that timber production, biodiversity and carbon sequestration. 
