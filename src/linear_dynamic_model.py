@@ -9,11 +9,11 @@ nb_tree = 10
 col, row = 5, 5  # For grid structures
 alpha = 0.1
 beta = 0.05
-htop = 20  # Asymptotic height parameter for the trees
+H = 20  # Asymptotic height parameter for the trees
 nb_iter = 1000  # Duration of the experiment
 edge_probability = 0.2  # For random Erdos-Renyi graphes
 cutting_probability = 0.1
-cutting_threshold = htop + 1
+cutting_threshold = H + 1
 nb_samples = 1000  # grid experiment
 
 # Toggle experiments
@@ -37,8 +37,8 @@ def graph_from_adjacency_matrix(adjacency_matrix):
 
 
 if exp_complete_graph:
-    s = np.random.uniform(0, htop, nb_tree + 1)
-    s[nb_tree] = htop
+    s = np.random.uniform(0, H, nb_tree + 1)
+    s[nb_tree] = H
     states = [s]
 
     transition_matrix = np.zeros((nb_tree + 1, nb_tree + 1))
@@ -87,8 +87,8 @@ if exp_random_graph:
         adjacency_matrix[i, i] = 0
     transition_matrix = build_transition_matrix(adjacency_matrix, alpha, beta)
 
-    s = np.random.uniform(0, htop, nb_tree + 1)
-    s[nb_tree] = htop
+    s = np.random.uniform(0, H, nb_tree + 1)
+    s[nb_tree] = H
     states = [s]
     for i in range(nb_iter):
         s = transition_matrix @ s
@@ -131,8 +131,8 @@ if exp_grid:
     adjacency_matrix = make_grid_matrix(row, col)
     transition_matrix = build_transition_matrix(adjacency_matrix, alpha, beta)
 
-    s = np.random.uniform(0, htop, nb_tree + 1)
-    s[nb_tree] = htop
+    s = np.random.uniform(0, H, nb_tree + 1)
+    s[nb_tree] = H
 
     states = [s]
     for i in tqdm(range(nb_iter), desc="Grid experiment"):
@@ -159,13 +159,13 @@ if exp_grid:
         samples_high = []
         samples_low = []
         for _ in range(nb_samples):
-            s = np.random.uniform(0, htop, nb_tree + 1)
-            s[nb_tree] = htop
+            s = np.random.uniform(0, H, nb_tree + 1)
+            s[nb_tree] = H
             for i in range(1000):
                 s = transition_matrix @ s
 
             for i in range(nb_tree):
-                if s[i] > htop:
+                if s[i] > H:
                     samples_high.append(s[i])
                 else:
                     samples_low.append(s[i])
@@ -200,8 +200,8 @@ if exp_octo_grid:
     adjacency_matrix = make_octo_grid_matrix(row, col)
     transition_matrix = build_transition_matrix(adjacency_matrix, alpha, beta)
 
-    s = np.random.uniform(0, htop, nb_tree + 1)
-    s[nb_tree] = htop
+    s = np.random.uniform(0, H, nb_tree + 1)
+    s[nb_tree] = H
 
     states = [s]
     for i in tqdm(range(nb_iter), desc="Octo grid experiment"):
@@ -240,8 +240,8 @@ if exp_random_actions:
     adjacency_matrix = make_octo_grid_matrix(row, col)
     transition_matrix = build_transition_matrix(adjacency_matrix, alpha, beta)
 
-    s = np.random.uniform(0, htop, nb_tree + 1)
-    s[nb_tree] = htop
+    s = np.random.uniform(0, H, nb_tree + 1)
+    s[nb_tree] = H
 
     states = [s]
     for i in range(nb_iter):
@@ -263,8 +263,8 @@ if exp_cutting_threshold:
     adjacency_matrix = make_octo_grid_matrix(row, col)
     transition_matrix = build_transition_matrix(adjacency_matrix, alpha, beta)
 
-    s = np.random.uniform(0, htop, nb_tree + 1)
-    s[nb_tree] = htop
+    s = np.random.uniform(0, H, nb_tree + 1)
+    s[nb_tree] = H
 
     states = [s]
     for i in range(nb_iter):

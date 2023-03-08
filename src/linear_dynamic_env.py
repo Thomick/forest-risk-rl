@@ -3,7 +3,12 @@ import numpy as np
 import rlberry.spaces as spaces
 from rlberry.envs.interface import Model
 
-from utils import build_transition_matrix
+from utils import build_transition_matrix, make_grid_matrix
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+from tqdm import tqdm
 
 
 class LinearDynamic(Model):
@@ -15,7 +20,7 @@ class LinearDynamic(Model):
         if A is None:
             A = np.eye(n_states)
         if B is None:
-            B = np.ones((n_states, n_actions))
+            B = np.ones((n_actions, n_states, n_states))
         self.n_states = n_states
         self.n_actions = n_actions
         self.A = A
@@ -39,7 +44,7 @@ class LinearDynamic(Model):
         return next_state, reward, done, info
 
     def sample(self, state, action):
-        next_state = self.A @ state + self.B[:, action] @ state
+        next_state = self.A @ state + self.B[action] @ state
         reward = state[action]
         done = False
         info = {}
@@ -50,18 +55,33 @@ class LinearDynamic(Model):
         return self.state.copy()
 
 
-class TreeLinearEnv(LinearDynamic):
-    def __init__(self, n_tree=10, adjacency_matrix=None, h0=20, alpha=0.5, beta=0.5):
+class ForestLinearEnv(LinearDynamic):
+    def __init__(self, n_tree=10, adjacency_matrix=None, H=20, alpha=0.5, beta=0.5):
         n_states = n_tree + 1
         n_actions = 2
-        self.h0 = h0
+        self.H = H
         self.alpha = alpha
         self.beta = beta
 
         A = build_transition_matrix(adjacency_matrix, alpha, beta)
         B = np.zeros((2, n_states, n_actions))
 
-        super().__init__(n_states, n_actions, A, B, high=2 * h0, low=0.0)
+        super().__init__(n_states, n_actions, A, B, high=2 * H, low=0.0)
+
+        self.action_space = spaces.Tuple([spaces.Discrete(n_actions)] * n_tree)
 
     def reset(self):
-        self.state = np.random.uniform
+        self.state = np.random.uniform(0, self.H, self.n_states)
+        self.state[-1] = self.H
+        return self.state.copy()
+
+    def sample(self, state, action):
+        B = np.zeros_like(self.A)
+        for i in range(len(action)):
+            if action[i] == 1:
+                B[i, ...] = -self.A[i, ...]
+        next_state = self.A @ state + B @ state
+        reward = (B @ state).transpose() @ B @ state / self.H**2
+        done = False
+        info = {}
+        return next_state, reward, done, info

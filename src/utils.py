@@ -30,3 +30,11 @@ def build_transition_matrix(adjacency_matrix, alpha, beta):
         transition_matrix[i, nb_tree] = alpha
     transition_matrix[nb_tree, nb_tree] = 1
     return transition_matrix
+
+
+def make_random_graph_matrix(n, p):
+    adjacency_matrix = np.random.binomial(1, p, (n, n))
+    for i in range(n):  # Make it symmetric
+        for j in range(i, n):
+            adjacency_matrix[i, j] = adjacency_matrix[j, i]
+        adjacency_matrix[i, i] = 0
