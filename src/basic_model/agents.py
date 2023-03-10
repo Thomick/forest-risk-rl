@@ -1,7 +1,7 @@
 from rlberry.agents import AgentWithSimplePolicy
 from learners.discreteMDPs.OptimalControl import Opti_controller
 import numpy as np
-from risk_measure import compute_empirical_cvar, compute_group_risk
+from basic_model.risk_measure import compute_empirical_cvar, compute_group_risk
 
 
 class ARRLAgent(AgentWithSimplePolicy):

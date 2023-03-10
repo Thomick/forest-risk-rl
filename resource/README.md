@@ -19,3 +19,6 @@ Also features the Faustmann value which corresponds to the discounted value of c
 
 # Couture2021
 Multi-objective forest management. Defines reward functions for the different ecosystem services such that timber production, biodiversity and carbon sequestration. 
+
+# Gravell2021
+Algorithm for to learn LQR with multiplicative noise (with code).

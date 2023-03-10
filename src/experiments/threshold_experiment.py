@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 from tqdm import tqdm
-from linear_dynamic_env import ForestLinearEnv, ForestWithStorms
+from models.linear_dynamic_env import ForestLinearEnv, ForestWithStorms
 
 
 row, col = 5, 5

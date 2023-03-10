@@ -1,7 +1,7 @@
 import numpy as np
 import scipy as sp
 from scipy.linalg import solve, eigvals
-from linear_dynamic_env import ForestLinearEnv
+from models.linear_dynamic_env import ForestLinearEnv
 from utils import make_grid_matrix
 
 

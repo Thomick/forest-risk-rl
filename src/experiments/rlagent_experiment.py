@@ -12,7 +12,7 @@ from stable_baselines3 import PPO
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 
-from linear_dynamic_env import ForestLinearEnv, ForestWithStorms
+from models.linear_dynamic_env import ForestLinearEnv, ForestWithStorms
 from utils import build_transition_matrix, make_grid_matrix
 
 
