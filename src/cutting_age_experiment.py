@@ -9,11 +9,12 @@ from tqdm import tqdm
 from linear_dynamic_env import ForestLinearEnv
 
 
-row, col = 5, 5
+row, col = 3, 3
 nb_iter = 100
-nb_run = 100
+nb_run = 10
 period = 20
 H = 20
+sync = True
 
 nb_tree = row * col
 adjacency_matrix = make_grid_matrix(row, col)
@@ -48,16 +49,15 @@ df = pd.DataFrame(
 )
 for p in tqdm(range(1, 31), desc="Computing optimal period"):
     observation = env.reset()
-    all_total_rewards = []
-    harvest_sizes = []
     for _ in range(nb_run):
+        harvest_sizes = []
         env.reset()
         total_reward = 0
         harvest_count = 0
         for i in range(nb_iter - 1):
             action = [0] * nb_tree
             for j in range(nb_tree):
-                if (i + j) % p == 0:
+                if ((i + j) % p == 0 and not sync) or ((i) % p == 0 and sync):
                     action[j] = 1
                     harvest_sizes.append(observation[j])
                     harvest_count += 1
@@ -77,7 +77,7 @@ sns.lineplot(
 )
 sns.lineplot(
     data=df,
-    x="Cuttinh age",
+    x="Cutting age",
     y="Average harvest size",
     ax=ax2,
     color="red",

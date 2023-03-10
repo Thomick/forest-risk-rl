@@ -3,6 +3,7 @@ import numpy as np
 import rlberry.spaces as spaces
 from rlberry.envs.interface import Model
 
+
 from utils import build_transition_matrix, make_grid_matrix
 
 import matplotlib.pyplot as plt
@@ -27,7 +28,7 @@ class LinearDynamic(Model):
         self.B = B
         self.low = low
         self.high = high
-
+        print(self.n_actions)
         self.action_space = spaces.Discrete(n_actions)
         self.observation_space = spaces.Box(self.low, self.high, shape=(n_states,))
 
@@ -44,7 +45,7 @@ class LinearDynamic(Model):
         return next_state, reward, done, info
 
     def sample(self, state, action):
-        next_state = self.A @ state + self.B[action] @ state
+        next_state = self.A @ state + self.B @ action
         reward = state[action]
         done = False
         info = {}
@@ -62,13 +63,13 @@ class ForestLinearEnv(LinearDynamic):
         self.H = H
         self.alpha = alpha
         self.beta = beta
+        self.n_tree = n_tree
 
         A = build_transition_matrix(adjacency_matrix, alpha, beta)
-        B = np.zeros((2, n_states, n_actions))
-
+        B = -A @ np.vstack((np.eye(n_tree), np.zeros(n_tree)))
         super().__init__(n_states, n_actions, A, B, high=2 * H, low=0.0)
 
-        self.action_space = spaces.Tuple([spaces.Discrete(n_actions)] * n_tree)
+        self.action_space = spaces.MultiBinary(n_tree)
 
     def reset(self):
         self.state = np.random.uniform(0, self.H, self.n_states)
@@ -76,12 +77,25 @@ class ForestLinearEnv(LinearDynamic):
         return self.state.copy()
 
     def sample(self, state, action):
-        B = np.zeros_like(self.A)
+        K = np.zeros((self.n_tree, self.n_tree))
         for i in range(len(action)):
             if action[i] == 1:
-                B[i, ...] = -self.A[i, ...]
-        next_state = self.A @ state + B @ state
-        reward = (B @ state).transpose() @ B @ state / self.H**2
+                K[i, i] = 1
+        K = np.hstack((K, np.zeros((self.n_tree, 1))))
+        next_state = self.A @ state + self.B @ K @ state
+        reward = (K @ state).transpose() @ K @ state / self.H**2
         done = False
         info = {}
         return next_state, reward, done, info
+
+
+class ForestLinearEnvDA(ForestLinearEnv):
+    def __init__(self, n_tree=10, adjacency_matrix=None, H=20, alpha=0.5, beta=0.5):
+        super().__init__(n_tree, adjacency_matrix, H, alpha, beta)
+        self.n_actions = 2**n_tree
+        print(self.n_actions)
+        self.action_space = spaces.Discrete(self.n_actions)
+
+    def sample(self, state, action):
+        action = np.array([int(x) for x in np.binary_repr(action, width=self.n_tree)])
+        return super().sample(state, action)

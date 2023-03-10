@@ -9,7 +9,7 @@ from tqdm import tqdm
 from linear_dynamic_env import ForestLinearEnv
 
 
-row, col = 5, 5
+row, col = 3, 3
 nb_iter = 100
 nb_run = 100
 period = 10
@@ -31,9 +31,8 @@ df = pd.DataFrame(
 )
 for t in tqdm(range(1, 23), desc="Computing optimal threshold"):
     observation = env.reset()
-    all_total_rewards = []
-    harvest_sizes = []
     for _ in range(nb_run):
+        harvest_sizes = []
         env.reset()
         total_reward = 0
         harvest_count = 0
