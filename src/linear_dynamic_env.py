@@ -17,18 +17,37 @@ class LinearDynamic(Model):
     Linear dynamic environment.
     """
 
-    def __init__(self, n_states=10, n_actions=2, A=None, B=None, high=1.0, low=-1.0):
+    def __init__(
+        self,
+        n_states,
+        n_actions,
+        A=None,
+        B=None,
+        M=None,
+        N=None,
+        R=None,
+        high=1.0,
+        low=-1.0,
+    ):
         if A is None:
             A = np.eye(n_states)
         if B is None:
-            B = np.ones((n_actions, n_states, n_states))
+            B = np.ones((n_actions, n_states))
+        if M is None:
+            M = np.zeros((n_states, n_states))
+        if N is None:
+            N = np.zeros((n_actions, n_actions))
+        if R is None:
+            R = lambda state, action: np.zeros(n_states)
         self.n_states = n_states
         self.n_actions = n_actions
         self.A = A
         self.B = B
+        self.M = M
+        self.N = N
+        self.R = R
         self.low = low
         self.high = high
-        print(self.n_actions)
         self.action_space = spaces.Discrete(n_actions)
         self.observation_space = spaces.Box(self.low, self.high, shape=(n_states,))
 
@@ -45,8 +64,10 @@ class LinearDynamic(Model):
         return next_state, reward, done, info
 
     def sample(self, state, action):
-        next_state = self.A @ state + self.B @ action
-        reward = state[action]
+        next_state = self.A @ state + self.B @ action + self.R(state, action)
+        reward = (
+            state.transpose() @ self.M @ state + action.transpose() @ self.N @ action
+        )
         done = False
         info = {}
         return next_state, reward, done, info
@@ -57,17 +78,30 @@ class LinearDynamic(Model):
 
 
 class ForestLinearEnv(LinearDynamic):
-    def __init__(self, n_tree=10, adjacency_matrix=None, H=20, alpha=0.5, beta=0.5):
-        n_states = n_tree + 1
-        n_actions = 2
+    def __init__(
+        self,
+        n_tree=10,
+        adjacency_matrix=None,
+        H=20,
+        alpha=0.5,
+        beta=0.5,
+        R=None,
+    ):
+        self.n_states = n_tree + 1
+        self.n_actions = n_tree
         self.H = H
         self.alpha = alpha
         self.beta = beta
         self.n_tree = n_tree
+        self.adjacency_matrix = adjacency_matrix
 
         A = build_transition_matrix(adjacency_matrix, alpha, beta)
         B = -A @ np.vstack((np.eye(n_tree), np.zeros(n_tree)))
-        super().__init__(n_states, n_actions, A, B, high=2 * H, low=0.0)
+        M = np.zeros((self.n_states, self.n_states))
+        N = np.eye(self.n_actions) / self.H**2
+        super().__init__(
+            self.n_states, self.n_actions, A, B, M, N, R=R, high=2 * H, low=0.0
+        )
 
         self.action_space = spaces.MultiBinary(n_tree)
 
@@ -77,25 +111,81 @@ class ForestLinearEnv(LinearDynamic):
         return self.state.copy()
 
     def sample(self, state, action):
+        action_vector = self.make_action_vector(state, action)
+        return super().sample(state, action_vector)
+
+    def make_action_vector(self, state, action):
         K = np.zeros((self.n_tree, self.n_tree))
         for i in range(len(action)):
             if action[i] == 1:
                 K[i, i] = 1
         K = np.hstack((K, np.zeros((self.n_tree, 1))))
-        next_state = self.A @ state + self.B @ K @ state
-        reward = (K @ state).transpose() @ K @ state / self.H**2
-        done = False
-        info = {}
-        return next_state, reward, done, info
+        return K @ state
 
 
-class ForestLinearEnvDA(ForestLinearEnv):
+class ForestLinearEnvCA(ForestLinearEnv):
     def __init__(self, n_tree=10, adjacency_matrix=None, H=20, alpha=0.5, beta=0.5):
         super().__init__(n_tree, adjacency_matrix, H, alpha, beta)
-        self.n_actions = 2**n_tree
-        print(self.n_actions)
-        self.action_space = spaces.Discrete(self.n_actions)
+        self.action_space = spaces.Box(0, 1, shape=(n_tree,))
 
     def sample(self, state, action):
-        action = np.array([int(x) for x in np.binary_repr(action, width=self.n_tree)])
-        return super().sample(state, action)
+        discrete_action = np.round(action).astype(int)
+        action_vector = self.make_action_vector(state, discrete_action)
+        return super().sample(state, action_vector)
+
+
+class ForestWithStorms(ForestLinearEnv):
+    def __init__(
+        self,
+        n_tree=10,
+        adjacency_matrix=None,
+        H=20,
+        alpha=0.5,
+        beta=0.5,
+        storm_prob=0.1,
+        max_degree=None,
+    ):
+        self.storm_prob = storm_prob
+        if max_degree is None or not isinstance(max_degree, int):
+            max_degree = np.sum(adjacency_matrix, axis=1).max()
+        self.D = max_degree
+        super().__init__(n_tree, adjacency_matrix, H, alpha, beta, R=self.random_storm)
+
+    def random_storm(self, state, action):
+        R = np.zeros_like(action)
+        if np.random.rand() < self.storm_prob:
+            for i in range(self.n_tree):
+                protection = 1
+                for j in range(self.n_tree):
+                    if self.adjacency_matrix[i, j] == 1:
+                        protection *= np.exp(state[j] / self.H)
+                protection /= np.exp(self.D)
+                if np.random.rand() > protection:
+                    R[i] = 1
+        K_prime = np.zeros((self.n_tree, self.n_tree))
+        for i in range(len(action)):
+            if R[i] == 1:
+                K_prime[i, i] = 1
+        return self.B @ K_prime @ (state[:-1] - action)
+
+
+if __name__ == "__main__":
+    env = ForestWithStorms(
+        n_tree=9,
+        adjacency_matrix=make_grid_matrix(3, 3),
+        H=20,
+        alpha=0.2,
+        beta=0.1,
+        storm_prob=0.05,
+        max_degree=4,
+    )
+
+    observation = env.reset()
+    states = [observation]
+    for i in range(100):
+        action = [0] * 9
+        observation, reward, done, info = env.step(action)
+        states.append(observation)
+
+    plt.plot(states)
+    plt.show()

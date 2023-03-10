@@ -6,19 +6,36 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 from tqdm import tqdm
-from linear_dynamic_env import ForestLinearEnv
+from linear_dynamic_env import ForestLinearEnv, ForestWithStorms
 
 
-row, col = 3, 3
+row, col = 5, 5
 nb_iter = 100
-nb_run = 10
+nb_run = 100
 period = 20
 H = 20
-sync = True
+sync = False
+alpha = 0.2
+beta = 0.1
+with_storms = True
+storm_probability = 0.05
 
 nb_tree = row * col
 adjacency_matrix = make_grid_matrix(row, col)
-env = ForestLinearEnv(nb_tree, adjacency_matrix, H=H, alpha=0.2, beta=0.1)
+
+if with_storms:
+    env = ForestWithStorms(
+        nb_tree,
+        adjacency_matrix,
+        H=H,
+        alpha=alpha,
+        beta=beta,
+        storm_prob=storm_probability,
+    )
+else:
+    env = ForestLinearEnv(nb_tree, adjacency_matrix, H=H, alpha=alpha, beta=alpha)
+
+
 all_total_rewards = []
 for _ in range(nb_run):
     env.reset()
