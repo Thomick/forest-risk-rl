@@ -1,3 +1,5 @@
+# Continuous forest environments
+
 import numpy as np
 
 import rlberry.spaces as spaces
@@ -12,9 +14,30 @@ import pandas as pd
 from tqdm import tqdm
 
 
-class LinearDynamic(Model):
+class LinearQuadraticEnv(Model):
     """
-    Linear dynamic environment.
+    Linear Quadratic Environment (Linear dynamics, Quadratic rewards)
+
+    Parameters
+    ----------
+    n_states : int
+        Number of states.
+    n_actions : int
+        Number of actions.
+    A : np.ndarray
+        State transition matrix.
+    B : np.ndarray
+        Action transition matrix.
+    M : np.ndarray
+        State reward matrix.
+    N : np.ndarray
+        Action reward matrix.
+    R : function
+        Hazard and noise generator.
+    high : float
+        Upper bound of the observation space.
+    low : float
+        Lower bound of the observation space.
     """
 
     def __init__(
@@ -29,6 +52,7 @@ class LinearDynamic(Model):
         high=1.0,
         low=-1.0,
     ):
+        # Default values
         if A is None:
             A = np.eye(n_states)
         if B is None:
@@ -77,7 +101,26 @@ class LinearDynamic(Model):
         return self.state.copy()
 
 
-class ForestLinearEnv(LinearDynamic):
+class ForestLinearEnv(LinearQuadraticEnv):
+    """
+    Forest environment.
+
+    Parameters
+    ----------
+    n_tree : int
+        Number of trees.
+    adjacency_matrix : np.ndarray
+        Adjacency matrix of the forest.
+    H : float
+        Height parameter (Influence the asymptotic height of the forest).
+    alpha : float
+        Growth parameter (Influence the growth rate of the forest).
+    beta : float
+        Interaction parameter (Influence the interaction between trees).
+    R : function
+        Hazard and noise generator.
+    """
+
     def __init__(
         self,
         n_tree=10,
@@ -111,10 +154,13 @@ class ForestLinearEnv(LinearDynamic):
         return self.state.copy()
 
     def sample(self, state, action):
-        action_vector = self.make_action_vector(state, action)
+        action_vector = self._make_action_vector(state, action)
         return super().sample(state, action_vector)
 
-    def make_action_vector(self, state, action):
+    def _make_action_vector(self, state, action):
+        """
+        Make action vector from action.
+        """
         K = np.zeros((self.n_tree, self.n_tree))
         for i in range(len(action)):
             if action[i] == 1:
@@ -124,17 +170,42 @@ class ForestLinearEnv(LinearDynamic):
 
 
 class ForestLinearEnvCA(ForestLinearEnv):
+    """
+    Forest environment with continuous action (which are discretized by the environment)
+    """
+
     def __init__(self, n_tree=10, adjacency_matrix=None, H=20, alpha=0.5, beta=0.5):
         super().__init__(n_tree, adjacency_matrix, H, alpha, beta)
         self.action_space = spaces.Box(0, 1, shape=(n_tree,))
 
     def sample(self, state, action):
         discrete_action = np.round(action).astype(int)
-        action_vector = self.make_action_vector(state, discrete_action)
+        action_vector = self._make_action_vector(state, discrete_action)
         return super().sample(state, action_vector)
 
 
 class ForestWithStorms(ForestLinearEnv):
+    """
+    Forest environment with storms.
+
+    Parameters
+    ----------
+    n_tree : int
+        Number of trees.
+    adjacency_matrix : np.ndarray
+        Adjacency matrix of the forest.
+    H : float
+        Height parameter (Influence the asymptotic height of the forest).
+    alpha : float
+        Growth parameter (Influence the growth rate of the forest).
+    beta : float
+        Interaction parameter (Influence the interaction between trees).
+    storm_prob : float
+        Probability of a storm at each time step.
+    max_degree : int
+        Maximum degree of the forest.
+    """
+
     def __init__(
         self,
         n_tree=10,
@@ -152,6 +223,16 @@ class ForestWithStorms(ForestLinearEnv):
         super().__init__(n_tree, adjacency_matrix, H, alpha, beta, R=self.random_storm)
 
     def random_storm(self, state, action):
+        """
+        Random storm generator.
+
+        Parameters
+        ----------
+        state : np.ndarray
+            State of the environment.
+        action : np.ndarray
+            Action of the agent.
+        """
         R = np.zeros_like(action)
         if np.random.rand() < self.storm_prob:
             for i in range(self.n_tree):

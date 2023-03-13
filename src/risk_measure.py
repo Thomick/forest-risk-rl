@@ -1,3 +1,5 @@
+# Defines the risk measure functions
+
 import numpy as np
 
 

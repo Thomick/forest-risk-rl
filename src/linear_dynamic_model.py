@@ -1,3 +1,5 @@
+# Preliminary experiments with a linear dynamic model
+
 import networkx as nx
 import matplotlib.pyplot as plt
 import seaborn as sns

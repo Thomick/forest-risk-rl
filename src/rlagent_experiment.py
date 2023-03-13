@@ -1,3 +1,5 @@
+# Code for the experiments with a RL agent that learns to harvest trees
+
 from rlberry.manager import (
     AgentManager,
     plot_writer_data,

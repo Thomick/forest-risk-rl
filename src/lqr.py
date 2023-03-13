@@ -1,3 +1,5 @@
+# Try to solve the LinearForestEnv as a LQR problem
+
 import numpy as np
 import scipy as sp
 from scipy.linalg import solve, eigvals
@@ -6,6 +8,7 @@ from utils import make_grid_matrix
 
 
 def dlqr(A, B, Q, R, N=None):
+    """Solve the discrete time lqr controller by solving the discrete algebraic Ricatti equation."""
     R = np.eye(B.shape[1]) if R is None else np.array(R, ndmin=2)
 
     S = sp.linalg.solve_discrete_are(A, B, Q, R, e=None, s=N)

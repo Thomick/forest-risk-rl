@@ -1,3 +1,5 @@
+# Code for the experiments with a simple cutting age based policy
+
 import numpy as np
 
 from utils import build_transition_matrix, make_grid_matrix
