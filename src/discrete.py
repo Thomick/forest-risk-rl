@@ -1,3 +1,5 @@
+# Preliminary code for discrete model
+
 import networkx as nx
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -11,7 +13,7 @@ do_cutting = False
 p_min = 0.0
 p_max = 1.0
 alpha = 1
-h0 = 20
+H = 20
 
 s = np.zeros(nb_tree)
 states = [s.copy()]
@@ -21,15 +23,15 @@ for i in range(nb_iter):
     for j in range(nb_tree):
         p_growth[j] = np.exp((s[j] - np.mean(s))) / np.exp(alpha)
     print(p_growth)
-    p_growth.clip((h0 - s) / h0, p_max, out=p_growth)
+    p_growth.clip((H - s) / H, p_max, out=p_growth)
     for j in range(nb_tree):
         if np.random.rand() < p_growth[j]:
             s[j] += 1
-        if s[j] > h0:
+        if s[j] > H:
             if do_cutting:
                 s[j] = 0
             else:
-                s[j] = h0
+                s[j] = H
 
     states.append(s.copy())
 plt.plot(states)
@@ -52,15 +54,15 @@ for i in range(nb_iter):
         diff = np.sum(s[adjacency_matrix[j] == 1]) / nb_neighbors - s[j]
         p_growth[j] = np.exp(-diff) / np.exp(alpha)
     print(p_growth)
-    p_growth.clip((h0 - s) / h0, p_max, out=p_growth)
+    p_growth.clip((H - s) / H, p_max, out=p_growth)
     for j in range(nb_tree):
         if np.random.rand() < p_growth[j]:
             s[j] += 1
-        if s[j] > h0:
+        if s[j] > H:
             if do_cutting:
                 s[j] = 0
             else:
-                s[j] = h0
+                s[j] = H
 
     states.append(s.copy())
 plt.plot(states)
