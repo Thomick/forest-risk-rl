@@ -1,5 +1,7 @@
 rlberry
 numpy<=1.23.5
 gym<=0.25.2
-pydot
 networkx
+pandas
+tqdm
+scipy
