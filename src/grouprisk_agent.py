@@ -1,5 +1,5 @@
-from basic_model.risk_measure import compute_group_risk
-from basic_model.agents import ARRLAgent
+from risk_measure import compute_group_risk
+from agents import ARRLAgent
 
 
 class ForestGRAgent(ARRLAgent):
