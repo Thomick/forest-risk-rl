@@ -15,7 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 
 from linear_dynamic_env import ForestLinearEnv, ForestWithStorms
-from utils import build_transition_matrix, make_grid_matrix
+from utils import build_transition_matrix, make_grid_matrix, make_octo_grid_matrix
 
 
 import matplotlib.pyplot as plt
@@ -28,13 +28,13 @@ row, col = 5, 5
 H = 20
 nb_run = 10
 nb_iter = 100
-nb_epoch = 1000
+nb_epoch = 500
 budget = 100
 alpha = 0.2
 beta = 0.1
-with_storms = True
+with_storms = False
 storm_probability = 0.05
-load_model = True
+load_model = False
 
 nb_tree = row * col
 adjacency_matrix = make_grid_matrix(row, col)

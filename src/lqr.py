@@ -5,9 +5,10 @@ import scipy as sp
 from scipy.linalg import solve, eigvals
 from linear_dynamic_env import ForestLinearEnv
 from utils import make_grid_matrix
+from control import dlqr
 
 
-def dlqr(A, B, Q, R, N=None):
+def my_dlqr(A, B, Q, R, N=None):
     """Solve the discrete time lqr controller by solving the discrete algebraic Ricatti equation."""
     R = np.eye(B.shape[1]) if R is None else np.array(R, ndmin=2)
 
@@ -23,15 +24,19 @@ row, col = 3, 3
 nb_iter = 100
 nb_run = 10
 H = 20
+use_grid = False
 
-nb_tree = row * col
-adjacency_matrix = make_grid_matrix(row, col)
+if use_grid:
+    nb_tree = row * col
+    adjacency_matrix = make_grid_matrix(row, col)
+else:
+    nb_tree = 10
+    adjacency_matrix = np.ones((nb_tree, nb_tree)) - np.eye(nb_tree)
 env = ForestLinearEnv(nb_tree, adjacency_matrix, H=H, alpha=0.2, beta=0.1)
 
 if __name__ == "__main__":
-    Q = np.zeros((env.n_tree + 1, env.n_tree + 1))
+    Q = np.eye(env.n_tree + 1)
     R = np.eye(env.n_tree)
-    N = np.zeros((env.n_tree + 1, env.n_tree))
-    K, S = dlqr(env.A, env.B, env.M, env.N)
+    K, S = dlqr(env.A, env.B, Q, R)
     print(K)
     print(S)

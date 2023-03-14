@@ -136,7 +136,7 @@ class ForestLinearEnv(LinearQuadraticEnv):
         self.alpha = alpha
         self.beta = beta
         self.n_tree = n_tree
-        self.adjacency_matrix = adjacency_matrix
+        self.adjacency_matrix = adjacency_matrix.astype(bool)
 
         A = build_transition_matrix(adjacency_matrix, alpha, beta)
         B = -A @ np.vstack((np.eye(n_tree), np.zeros(n_tree)))
@@ -214,12 +214,12 @@ class ForestWithStorms(ForestLinearEnv):
         alpha=0.5,
         beta=0.5,
         storm_prob=0.1,
-        max_degree=None,
+        storm_power=None,
     ):
         self.storm_prob = storm_prob
-        if max_degree is None or not isinstance(max_degree, int):
-            max_degree = np.sum(adjacency_matrix, axis=1).max()
-        self.D = max_degree
+        if storm_power is None or not isinstance(storm_power, int):
+            storm_power = np.sum(adjacency_matrix, axis=1).max()
+        self.D = storm_power
         super().__init__(n_tree, adjacency_matrix, H, alpha, beta, R=self.random_storm)
 
     def random_storm(self, state, action):
@@ -236,13 +236,12 @@ class ForestWithStorms(ForestLinearEnv):
         R = np.zeros_like(action)
         if np.random.rand() < self.storm_prob:
             for i in range(self.n_tree):
-                protection = 1
-                for j in range(self.n_tree):
-                    if self.adjacency_matrix[i, j] == 1:
-                        protection *= np.exp(state[j] / self.H)
-                protection /= np.exp(self.D)
-                if np.random.rand() > protection:
+                p = np.exp(
+                    -np.sum(state[:-1][self.adjacency_matrix[i]]) / (self.H * self.D)
+                )
+                if np.random.rand() < p:
                     R[i] = 1
+                    print(i, state[i], p)
         K_prime = np.zeros((self.n_tree, self.n_tree))
         for i in range(len(action)):
             if R[i] == 1:
@@ -258,7 +257,7 @@ if __name__ == "__main__":
         alpha=0.2,
         beta=0.1,
         storm_prob=0.05,
-        max_degree=4,
+        storm_power=2,
     )
 
     observation = env.reset()
