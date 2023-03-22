@@ -6,7 +6,8 @@ import rlberry.spaces as spaces
 from rlberry.envs.interface import Model
 
 
-from utils import build_transition_matrix, make_grid_matrix
+from utils import build_transition_matrix, make_grid_matrix, make_octo_grid_matrix
+from risk_measure import windthrow_risk_continuous, group_risk, diversity_risk
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -168,6 +169,21 @@ class ForestLinearEnv(LinearQuadraticEnv):
         K = np.hstack((K, np.zeros((self.n_tree, 1))))
         return K @ state
 
+    def compute_risks(self, state):
+        """
+        Compute the risk of a given state
+        """
+        windthrow_risk = np.zeros(self.n_tree)
+        for i in range(self.n_tree):
+            windthrow_risk[i] = windthrow_risk_continuous(
+                state[:-1][self.adjacency_matrix[i]], lambda x: (self.H - x) / self.H
+            )
+
+        diversity_risk = np.zeros(self.n_tree)
+        group_risk = np.zeros(self.n_tree)
+
+        return windthrow_risk, diversity_risk, group_risk
+
 
 class ForestLinearEnvCA(ForestLinearEnv):
     """
@@ -241,7 +257,7 @@ class ForestWithStorms(ForestLinearEnv):
                 )
                 if np.random.rand() < p:
                     R[i] = 1
-                    print(i, state[i], p)
+                    # print(i, state[i], p)
         K_prime = np.zeros((self.n_tree, self.n_tree))
         for i in range(len(action)):
             if R[i] == 1:
@@ -262,7 +278,7 @@ if __name__ == "__main__":
 
     observation = env.reset()
     states = [observation]
-    for i in range(100):
+    for i in range(50):
         action = [0] * 9
         observation, reward, done, info = env.step(action)
         states.append(observation)

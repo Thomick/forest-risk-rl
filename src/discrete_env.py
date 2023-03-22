@@ -98,6 +98,44 @@ class ForestDiscreteEnv(Model):
         return p_windthrow
 
 
+class ForestMDPEnv(ForestDiscreteEnv):
+    def __init__(
+        self, n_tree=10, adjacency_matrix=None, H=20, a=1, storm_power=4, p_storm=0
+    ):
+        super().__init__(n_tree, adjacency_matrix, H, a, storm_power, p_storm)
+        self.n_states = n_tree
+        self.n_actions = n_tree
+        self.action_space = spaces.MultiBinary(n_tree)
+        self.observation_space = spaces.MultiDiscrete([H + 1] * (n_tree + 1))
+
+    def reset(self):
+        self.state = np.random.randint(0, self.H, self.n_tree)
+        return np.hstack((self.state, np.sum(self.state)))
+
+    def step(self, action):
+        reward = 0
+        s = self.state.copy()
+
+        for j in range(self.n_actions):
+            if action[j] == 1:
+                reward += self._reward_from_height(s[j])
+                s[j] = 0
+
+        p_windthrow = self._compute_p_windthrow(s)
+        for j in range(self.n_states):
+            if np.random.rand() < p_windthrow[j]:
+                s[j] = 0
+
+        p_growth = self._compute_p_growth(s)
+        for j in range(self.n_states):
+            if np.random.rand() < p_growth[j]:
+                s[j] = min(s[j] + 1, self.H)
+
+        self.state = s.copy()
+        done = False
+        return np.hstack((self.state, np.sum(self.state))), reward, done, {}
+
+
 if __name__ == "__main__":
     row, col = 5, 5
     n_tree = row * col
