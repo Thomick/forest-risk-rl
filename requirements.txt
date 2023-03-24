@@ -4,4 +4,6 @@ gym<=0.25.2
 networkx
 pandas
 tqdm
-scipy
+pyqt5
+joblib
+.
