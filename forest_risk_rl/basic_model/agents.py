@@ -1,5 +1,5 @@
 from rlberry.agents import AgentWithSimplePolicy
-from learners.discreteMDPs.OptimalControl import Opti_controller
+from forest_risk_rl.learners.discreteMDPs.OptimalControl import Opti_controller
 import numpy as np
 from forest_risk_rl.risk_measures import compute_empirical_cvar, compute_group_risk
 

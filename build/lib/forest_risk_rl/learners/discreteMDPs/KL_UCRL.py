@@ -1,6 +1,7 @@
-from learners.discreteMDPs.utils import *
+from forest_risk_rl.learners.discreteMDPs.utils import *
 
-from learners.discreteMDPs.AgentInterface import Agent
+from forest_risk_rl.learners.discreteMDPs.AgentInterface import Agent
+
 
 # KL-UCRL is an improvement of UCRL2 introduced by Filippi et al. 2011
 # This class proposes an implementation of this algorithm, it seems usefull to know that the algorithm proposed in the paper cannot be implemented as
@@ -31,10 +32,10 @@ class KL_UCRL(Agent):
         self.policy = np.zeros((self.nS, self.nA))
         for s in range(self.nS):
             for a in range(self.nA):
-                self.policy[s, a] = 1. / self.nA
+                self.policy[s, a] = 1.0 / self.nA
 
- #   def name(self):
- #       return "KL-UCRL"
+    #   def name(self):
+    #       return "KL-UCRL"
 
     # Auxiliary function to update N the current state-action count.
     def updateN(self):
@@ -44,19 +45,33 @@ class KL_UCRL(Agent):
 
     # Auxiliary function to update R the accumulated reward.
     def updateR(self):
-        self.Rk[self.observations[0][-2], self.observations[1][-1]] += self.observations[2][-1]
+        self.Rk[
+            self.observations[0][-2], self.observations[1][-1]
+        ] += self.observations[2][-1]
 
     # Auxiliary function to update P the transitions count.
     def updateP(self):
-        self.Pk[self.observations[0][-2], self.observations[1][-1], self.observations[0][-1]] += 1
+        self.Pk[
+            self.observations[0][-2], self.observations[1][-1], self.observations[0][-1]
+        ] += 1
 
     # Auxiliary function updating the values of r_distances and p_distances (i.e. the confidence bounds used to build the set of plausible MDPs).
     # KL-UCRL variant (Cp and Cr are difined as constrained constants in the paper of Filippi et al 2011, here we use the one used on the proofs
     # provided by the paper (with 2 instead of T at the initialization to prevent div by 0).
     def distances(self):
-        B = np.log((2 * np.exp(1) * (self.nS) ** 2 * self.nA * np.log(max([2, self.t]))) / self.delta)
-        Cp = self.nS * (B + np.log(B + 1 / np.log(max([2, self.t]))) * (1 + 1 / (B + 1 / np.log(max([2, self.t])))))
-        Cr = np.sqrt((np.log(4 * self.nS * self.nA * np.log(max([2, self.t])) / self.delta)) / 1.99)
+        B = np.log(
+            (2 * np.exp(1) * (self.nS) ** 2 * self.nA * np.log(max([2, self.t])))
+            / self.delta
+        )
+        Cp = self.nS * (
+            B
+            + np.log(B + 1 / np.log(max([2, self.t])))
+            * (1 + 1 / (B + 1 / np.log(max([2, self.t]))))
+        )
+        Cr = np.sqrt(
+            (np.log(4 * self.nS * self.nA * np.log(max([2, self.t])) / self.delta))
+            / 1.99
+        )
         for s in range(self.nS):
             for a in range(self.nA):
                 self.r_distances[s, a] = Cr / np.sqrt(max([1, self.Nk[s, a]]))
@@ -68,11 +83,11 @@ class KL_UCRL(Agent):
         sum2 = 0
         for i in Z_:
             if nu == V[i]:
-                return - 10 ** 10
+                return -(10**10)
             sum1 += p[i] * np.log(nu - V[i])
             sum2 += p[i] / (nu - V[i])
         if sum2 <= 0:
-            return - 10 ** 10
+            return -(10**10)
         return sum1 + np.log(sum2)
 
     # Derivative of f, used in newton optimization.
@@ -87,9 +102,9 @@ class KL_UCRL(Agent):
 
     # The maximization algorithm proposed by Filippi et al. 2011.
     # Inputs:
-    #	tau our approximation of 0
-    #	tol precision required in newton optimization
-    #	max_iter maximmum number of iterations on newton optimization
+    # 	tau our approximation of 0
+    # 	tol precision required in newton optimization
+    # 	max_iter maximmum number of iterations on newton optimization
     def MaxKL(self, p_estimate, u0, s, a, tau=10 ** (-8), tol=10 ** (-5), max_iter=10):
         degenerate = False  # used to catch some errors
         Z, Z_, argmax = [], [], []
@@ -109,23 +124,34 @@ class KL_UCRL(Agent):
                 I.append(i)
                 test0 = True
         if test0:
-            test = [(self.f(u0[i], p_estimate[s, a], u0, Z_) < self.p_distances[s, a]) for i in I]
+            test = [
+                (self.f(u0[i], p_estimate[s, a], u0, Z_) < self.p_distances[s, a])
+                for i in I
+            ]
         else:
             test = [False]
-        if (True in test) and (maxV > 0):  # List I must not and cannot be empty if this is true.
+        if (True in test) and (
+            maxV > 0
+        ):  # List I must not and cannot be empty if this is true.
             for i in range(len(test)):
                 if test[i]:  # it has to happen because of previous if
                     nu = u0[I[i]]
                     break
-            r = 1 - np.exp(self.f(nu, p_estimate[s, a], u0, Z_) - self.p_distances[s, a])
+            r = 1 - np.exp(
+                self.f(nu, p_estimate[s, a], u0, Z_) - self.p_distances[s, a]
+            )
             for i in I:  # We want sum(q[i]) for i in I = r.
                 q[i] = r / len(I)
         else:
             vzmax = max([u0[i] for i in Z_])
             # The following replaces Newton's steps by a simple Dichotomic search.
             # The later requires more steps to get same precision, but is more numericlaly stable, plus each iteration is O(1) versus O(S) for Newton's steps.
-            nu = search_up( lambda x: self.f(x, p_estimate[s, a], u0, Z_) <= self.p_distances[s, a], vzmax+10**7,vzmax+10**(-7))
-            r=0.
+            nu = search_up(
+                lambda x: self.f(x, p_estimate[s, a], u0, Z_) <= self.p_distances[s, a],
+                vzmax + 10**7,
+                vzmax + 10 ** (-7),
+            )
+            r = 0.0
             # if len(     Z) >= self.nS - 1:  # To prevent the algorithm from running the Newton optimization on a constant or undefined function.
             #     degenerate = True
             #     q = p_estimate[s, a]
@@ -161,8 +187,8 @@ class KL_UCRL(Agent):
         if not degenerate:
             q_tilde = np.zeros(self.nS)
             for i in Z_:
-                if np.abs(nu-u0[i])<tol:
-                    q_tilde[i] = p_estimate[s, a, i] * 10 ** 10
+                if np.abs(nu - u0[i]) < tol:
+                    q_tilde[i] = p_estimate[s, a, i] * 10**10
                 else:
                     q_tilde[i] = p_estimate[s, a, i] / (nu - u0[i])
             sum_q_tilde = sum(q_tilde)
@@ -179,20 +205,28 @@ class KL_UCRL(Agent):
         while True:
             for s in range(self.nS):
                 temp = np.zeros(self.nA)
-                test0 = (False in [tau > u for u in u0])  # Test u0 != [0,..., 0]
+                test0 = False in [tau > u for u in u0]  # Test u0 != [0,..., 0]
                 for a in range(self.nA):
-                    if not test0:  # MaxKL cannot run with V = [0, 0,..., 0, 0] because function f is undifined in this case.
+                    if (
+                        not test0
+                    ):  # MaxKL cannot run with V = [0, 0,..., 0, 0] because function f is undifined in this case.
                         max_p = p_estimate[s, a]
                     else:
                         max_p = self.MaxKL(p_estimate, u0, s, a)
-                    temp[a] = r_estimate[s, a] + self.r_distances[s, a] + sum([u * p for (u, p) in zip(u0, max_p)])
+                    temp[a] = (
+                        r_estimate[s, a]
+                        + self.r_distances[s, a]
+                        + sum([u * p for (u, p) in zip(u0, max_p)])
+                    )
 
                 # This implements a tie-breaking rule by choosing:  Uniform(Argmmin(Nk))
                 (u1[s], arg) = allmax(temp)
                 nn = [-self.Nk[s, a] for a in arg]
                 (nmax, arg2) = allmax(nn)
                 choice = [arg[a] for a in arg2]
-                self.policy[s] = [1. / len(choice) if x in choice else 0 for x in range(self.nA)]
+                self.policy[s] = [
+                    1.0 / len(choice) if x in choice else 0 for x in range(self.nA)
+                ]
 
             diff = [x - y for (x, y) in zip(u1, u0)]
             if (max(diff) - min(diff)) < epsilon:
@@ -202,7 +236,7 @@ class KL_UCRL(Agent):
                 u0 = u1 - min(u1)
                 u1 = np.zeros(self.nS)
             if niter > maxiter:
-                self.u = u1- min(u1)
+                self.u = u1 - min(u1)
                 break
             else:
                 niter += 1
@@ -220,7 +254,7 @@ class KL_UCRL(Agent):
                 for next_s in range(self.nS):
                     p_estimate[s, a, next_s] = self.Pk[s, a, next_s] / div
         self.distances()
-        self.EVI(r_estimate, p_estimate, epsilon=1. / max(1, self.t))
+        self.EVI(r_estimate, p_estimate, epsilon=1.0 / max(1, self.t))
 
     # To reinitialize the learner with a given initial state inistate.
     def reset(self, inistate):
@@ -234,15 +268,21 @@ class KL_UCRL(Agent):
         self.span = [0]
         for s in range(self.nS):
             for a in range(self.nA):
-                self.policy[s, a] = 1. / self.nA
+                self.policy[s, a] = 1.0 / self.nA
         self.new_episode()
 
     # To chose an action for a given state (and start a new episode if necessary -> stopping criterion defined here).
     def play(self, state):
-        action = categorical_sample([self.policy[state, a] for a in range(self.nA)], np.random)
-        if self.vk[state, action] >= max([1, self.Nk[state, action]]):  # Stoppping criterion
+        action = categorical_sample(
+            [self.policy[state, a] for a in range(self.nA)], np.random
+        )
+        if self.vk[state, action] >= max(
+            [1, self.Nk[state, action]]
+        ):  # Stoppping criterion
             self.new_episode()
-            action = categorical_sample([self.policy[state, a] for a in range(self.nA)], np.random)
+            action = categorical_sample(
+                [self.policy[state, a] for a in range(self.nA)], np.random
+            )
         return action
 
     # To update the learner after one step of the current policy.

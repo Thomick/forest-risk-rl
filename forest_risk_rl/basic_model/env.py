@@ -1,4 +1,3 @@
-import gym
 from gym.envs.registration import register
 import numpy as np
 from forest_risk_rl.envs.discreteMDPs.gymWrapper import DiscreteMDP, Dirac

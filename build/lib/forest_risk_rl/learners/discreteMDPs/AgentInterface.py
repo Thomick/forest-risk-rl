@@ -1,5 +1,5 @@
 import numpy as np
-import learners.discreteMDPs.utils as utils
+import forest_risk_rl.learners.discreteMDPs.utils as utils
 
 
 class Agent:

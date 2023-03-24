@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize_scalar
-from learners.discreteMDPs.utils import *
-from learners.discreteMDPs.AgentInterface import Agent
+from forest_risk_rl.learners.discreteMDPs.utils import *
+from forest_risk_rl.learners.discreteMDPs.AgentInterface import Agent
 
 
 def randamax(v, t=None, i=None):

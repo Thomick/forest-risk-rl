@@ -13,7 +13,7 @@ from env import register_forestmdp
 
 from agents import ARRLAgent, OptAgent, Random
 from grouprisk_agent import ForestGRAgent, ForestGROnlyAgent
-from learners.Generic.Qlearning import Qlearning
+from forest_risk_rl.learners.Generic.Qlearning import Qlearning
 
 import matplotlib.pyplot as plt
 

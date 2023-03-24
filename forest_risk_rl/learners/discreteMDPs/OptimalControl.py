@@ -1,4 +1,4 @@
-from learners.discreteMDPs.utils import *
+from forest_risk_rl.learners.discreteMDPs.utils import *
 
 
 def build_opti(name, env, nS, nA):
