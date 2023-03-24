@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from utils import build_transition_matrix, make_grid_matrix
+from utils import make_grid_matrix
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -21,8 +21,8 @@ with_storms = True
 storm_probability = 0.05
 default_threshold = 15
 
-optimal_threshold_experiment = False
-storm_impact_experiment = True
+optimal_threshold_experiment = True
+storm_impact_experiment = False
 track_risk_experiment = False
 
 

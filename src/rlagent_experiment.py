@@ -1,19 +1,15 @@
 # Code for the experiments with a RL agent that learns to harvest trees
 
-from stable_baselines3 import PPO
-
-from torch.utils.tensorboard import SummaryWriter
-import numpy as np
 
 from linear_dynamic_env import ForestLinearEnv, ForestWithStorms
-from utils import build_transition_matrix, make_grid_matrix, make_octo_grid_matrix
+from utils import make_grid_matrix, make_octo_grid_matrix
 
-
+from stable_baselines3 import PPO
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 from tqdm import tqdm
-
 from joblib import Parallel, delayed
 
 
@@ -31,24 +27,25 @@ load_model = True
 nb_model = 4
 
 training_experiment = False
-storm_risk_experiment = True
+storm_risk_experiment = False
+track_risk_experiment = True
 
 nb_tree = row * col
 adjacency_matrix = make_grid_matrix(row, col)
 
-if training_experiment:
-    if with_storms:
-        env = ForestWithStorms(
-            nb_tree,
-            adjacency_matrix,
-            H=H,
-            alpha=alpha,
-            beta=beta,
-            storm_prob=storm_probability,
-        )
-    else:
-        env = ForestLinearEnv(nb_tree, adjacency_matrix, H=H, alpha=alpha, beta=beta)
+if with_storms:
+    env = ForestWithStorms(
+        nb_tree,
+        adjacency_matrix,
+        H=H,
+        alpha=alpha,
+        beta=beta,
+        storm_prob=storm_probability,
+    )
+else:
+    env = ForestLinearEnv(nb_tree, adjacency_matrix, H=H, alpha=alpha, beta=beta)
 
+if training_experiment:
     agent = PPO("MlpPolicy", env, verbose=0)
     if load_model:
         agent = PPO.load("ppo_forest", env)
@@ -171,4 +168,38 @@ if storm_risk_experiment:
     sns.lineplot(data=exp_df, x="Storm probability", y="Average risk")
     plt.title("Average risk of learned policy")
     plt.savefig("storm_risk_experiment_risk.png")
+    plt.show()
+
+if track_risk_experiment:
+    agent = PPO.load("ppo_forest", env)
+    df = pd.DataFrame(
+        columns=[
+            "Step",
+            "Reward",
+            "Windthrow risk",
+            "Height_0",
+        ]
+    )
+    for _ in range(nb_run):
+        harvest_sizes = []
+        observation = env.reset()
+        total_reward = 0
+        harvest_count = 0
+        for i in range(nb_iter - 1):
+            action, _ = agent.predict(observation)
+            observation, reward, done, _ = env.step(action)
+            total_reward += reward
+            df.loc[len(df)] = [
+                i,
+                reward,
+                env.compute_risks(observation)[0].mean(),
+                observation[0],
+            ]
+    sns.lineplot(data=df, x="Step", y="Reward")
+    plt.title(f"Reward over time (PPO learned policy)")
+    plt.figure()
+    sns.lineplot(data=df, x="Step", y="Windthrow risk")
+    plt.title(f"Windthrow risk over time (PPO learned policy)")
+    plt.figure()
+    sns.lineplot(data=df, x="Step", y="Height_0")
     plt.show()

@@ -21,12 +21,12 @@ alpha = 0.2
 beta = 0.1
 default_cutting_age = 7
 with_storms = True
-storm_probability = 0.2
+storm_probability = 0.01
 
 dispersion_experiment = False
 optimal_age_experiment = False
-storm_impact_experiment = True
-track_risk_experiment = False
+storm_impact_experiment = False
+track_risk_experiment = True
 
 nb_tree = row * col
 adjacency_matrix = make_grid_matrix(row, col)
@@ -215,19 +215,35 @@ if track_risk_experiment:
                     action[j] = 1
                     harvest_sizes.append(observation[j])
                     harvest_count += 1
+            risk = env.compute_risks(observation)[0].mean()
             observation, reward, done, _ = env.step(action)
             total_reward += reward
             df.loc[len(df)] = [
                 i,
                 reward,
-                env.compute_risks(observation)[0].mean(),
+                risk,
                 observation[0],
             ]
-    sns.lineplot(data=df, x="Step", y="Reward")
-    plt.title(f"Reward over time (cutting age = {default_cutting_age})")
-    plt.figure()
-    sns.lineplot(data=df, x="Step", y="Windthrow risk")
-    plt.title(f"Windthrow risk over time (cutting age = {default_cutting_age})")
-    plt.figure()
-    sns.lineplot(data=df, x="Step", y="Height_0")
+
+    fig, ax1 = plt.subplots()
+    ax2 = ax1.twinx()
+    sns.lineplot(
+        data=df,
+        x="Step",
+        y="Reward",
+        color="blue",
+        ax=ax1,
+    )
+    sns.lineplot(
+        data=df,
+        x="Step",
+        y="Windthrow risk",
+        ax=ax2,
+        color="red",
+    )
+    ax1.set_ylabel("Reward", color="blue")
+    ax1.set_ylim([0, 4])
+    ax2.set_ylabel("Average windthrow risk", color="red")
+    ax2.set_ylim([4.5, 7])
+    plt.tight_layout()
     plt.show()
