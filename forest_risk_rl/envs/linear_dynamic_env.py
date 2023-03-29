@@ -156,14 +156,17 @@ class ForestLinearEnv(LinearQuadraticEnv):
         )
 
         self.action_space = spaces.MultiBinary(n_tree)
+        self.step_since_reset = 0
 
     def reset(self):
         self.state = np.random.uniform(0, self.H, self.n_states)
         self.state[-1] = self.H
+        self.step_since_reset = 0
         return self.state.copy()
 
     def sample(self, state, action):
         action_vector = self._make_action_vector(state, action)
+        self.step_since_reset += 1
         return super().sample(state, action_vector)
 
     def _make_action_vector(self, state, action):
@@ -228,6 +231,10 @@ class ForestWithStorms(ForestLinearEnv):
         Probability of a storm at each time step.
     max_degree : int
         Maximum degree of the forest.
+    storm_sequence : list
+        Sequence of storm occurences to be applied (if empty, storms are generated randomly). When arriving at the end of the sequence, the sequence is repeated.
+    storm_mask : list or np.ndarray
+        Mask describing which trees are affected by the storms. If None, all trees are affected. 0 means no storm, 1 means storm.
     """
 
     def __init__(
@@ -239,16 +246,25 @@ class ForestWithStorms(ForestLinearEnv):
         beta=0.5,
         storm_prob=0.1,
         storm_power=None,
+        storm_sequence=[],
+        storm_mask=None,
     ):
         self.storm_prob = storm_prob
         if storm_power is None or not isinstance(storm_power, int):
             storm_power = np.sum(adjacency_matrix, axis=1).max()
         self.D = storm_power
-        super().__init__(n_tree, adjacency_matrix, H, alpha, beta, R=self.random_storm)
+        self.storm_sequence = storm_sequence
+        if storm_mask is None or len(storm_mask) != n_tree:
+            self.storm_mask = np.ones(n_tree)
+        else:
+            self.storm_mask = np.array(storm_mask, dtype=int)
+        super().__init__(
+            n_tree, adjacency_matrix, H, alpha, beta, R=self.generate_storm
+        )
 
-    def random_storm(self, state, action):
+    def generate_storm(self, state, action):
         """
-        Random storm generator.
+        Storm generator (either random occurence or according to a fixed sequence set using storm_sequence parameter in the constructor)
 
         Parameters
         ----------
@@ -258,8 +274,19 @@ class ForestWithStorms(ForestLinearEnv):
             Action of the agent.
         """
         R = np.zeros_like(action)
-        if np.random.rand() < self.storm_prob:
+
+        storm_occurence = False
+        if len(self.storm_sequence) > 0:
+            storm_occurence = self.storm_sequence[
+                self.step_since_reset % len(self.storm_sequence)
+            ]
+        elif np.random.rand() < self.storm_prob:
+            storm_occurence = True
+
+        if storm_occurence:
             for i in range(self.n_tree):
+                if self.storm_mask[i] == 0:
+                    continue
                 p = np.exp(
                     -np.sum(state[:-1][self.adjacency_matrix[i]]) / (self.H * self.D)
                 )
@@ -273,8 +300,39 @@ class ForestWithStorms(ForestLinearEnv):
         return self.B @ K_prime @ (state[:-1] - action)
 
 
+class ForestWithFires(ForestLinearEnv):
+    def __init__(
+        self, n_tree=10, adjacency_matrix=None, H=20, alpha=0.5, beta=0.5, fire_prob=0.1
+    ):
+        self.fire_prob = fire_prob
+        super().__init__(n_tree, adjacency_matrix, H, alpha, beta, R=self.generate_fire)
+
+    def generate_fire(self, state, action):
+        R = np.zeros_like(action)
+        if np.random.rand() < self.fire_prob:
+            starting_tree = np.random.randint(self.n_tree)
+            R[starting_tree] = 1
+            fire_duration = np.random.randint(3, 5)
+            for i in range(fire_duration):
+                for j in range(self.n_tree):
+                    if R[j] == 1:
+                        for k in range(self.n_tree):
+                            if self.adjacency_matrix[j, k] == 1 and R[k] == 0:
+                                p_propagation = 0.5 / (
+                                    1 + np.exp(-(state[j] - state[k]))
+                                )
+                                R[k] = np.random.rand() < p_propagation
+                                print(state[j], state[k], p_propagation, R[k])
+            print(R.reshape(3, 3))
+        K_prime = np.zeros((self.n_tree, self.n_tree))
+        for i in range(len(action)):
+            if R[i] == 1:
+                K_prime[i, i] = 1
+        return self.B @ K_prime @ (state[:-1] - action)
+
+
 if __name__ == "__main__":
-    env = ForestWithStorms(
+    """env = ForestWithStorms(
         n_tree=9,
         adjacency_matrix=make_octo_grid_matrix(3, 3),
         H=20,
@@ -282,19 +340,27 @@ if __name__ == "__main__":
         beta=0.11,
         storm_prob=0.0,
         storm_power=2,
+        storm_sequence=[False, False, False, False, True],
+        storm_mask=[0, 0, 0, 0, 0, 0, 0, 0, 1],
+    )"""
+
+    env = ForestWithFires(
+        n_tree=9,
+        adjacency_matrix=make_octo_grid_matrix(3, 3),
+        H=20,
+        alpha=0.2,
+        beta=0.1,
+        fire_prob=0.05,
     )
 
     observation = env.reset()
     states = [observation]
     for i in range(50):
         action = [0] * 9
-        if i % 10 == 0:
-            action[0] = 1
         observation, reward, done, info = env.step(action)
         states.append(observation)
 
     plt.plot(states)
     plt.xlabel("Time step")
     plt.ylabel("Height")
-    plt.title("Periodic cutting of a tree")
     plt.show()
