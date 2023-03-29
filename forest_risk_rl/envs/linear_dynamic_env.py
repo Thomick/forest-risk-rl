@@ -322,8 +322,7 @@ class ForestWithFires(ForestLinearEnv):
                                     1 + np.exp(-(state[j] - state[k]))
                                 )
                                 R[k] = np.random.rand() < p_propagation
-                                print(state[j], state[k], p_propagation, R[k])
-            print(R.reshape(3, 3))
+            # print(R.reshape(3, 3))
         K_prime = np.zeros((self.n_tree, self.n_tree))
         for i in range(len(action)):
             if R[i] == 1:
