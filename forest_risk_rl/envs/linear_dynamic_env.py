@@ -259,10 +259,10 @@ class ForestWithStorms(ForestLinearEnv):
         else:
             self.storm_mask = np.array(storm_mask, dtype=int)
         super().__init__(
-            n_tree, adjacency_matrix, H, alpha, beta, R=self.generate_storm
+            n_tree, adjacency_matrix, H, alpha, beta, R=self._generate_storm
         )
 
-    def generate_storm(self, state, action):
+    def _generate_storm(self, state, action):
         """
         Storm generator (either random occurence or according to a fixed sequence set using storm_sequence parameter in the constructor)
 
@@ -272,6 +272,11 @@ class ForestWithStorms(ForestLinearEnv):
             State of the environment.
         action : np.ndarray
             Action of the agent.
+
+        Returns
+        -------
+        R : np.ndarray
+            Risk vector (used as noise in the environment).
         """
         R = np.zeros_like(action)
 
@@ -301,13 +306,49 @@ class ForestWithStorms(ForestLinearEnv):
 
 
 class ForestWithFires(ForestLinearEnv):
+    """
+    Forest environment with fires.
+
+    Parameters
+    ----------
+    n_tree : int
+        Number of trees.
+    adjacency_matrix : np.ndarray
+        Adjacency matrix of the forest.
+    H : float
+        Height parameter (Influence the asymptotic height of the forest).
+    alpha : float
+        Growth parameter (Influence the growth rate of the forest).
+    beta : float
+        Interaction parameter (Influence the interaction between trees).
+    fire_prob : float
+        Probability of a fire at each time step.
+    """
+
     def __init__(
         self, n_tree=10, adjacency_matrix=None, H=20, alpha=0.5, beta=0.5, fire_prob=0.1
     ):
         self.fire_prob = fire_prob
-        super().__init__(n_tree, adjacency_matrix, H, alpha, beta, R=self.generate_fire)
+        super().__init__(
+            n_tree, adjacency_matrix, H, alpha, beta, R=self._generate_fire
+        )
 
-    def generate_fire(self, state, action):
+    def _generate_fire(self, state, action):
+        """
+        Fire generator
+
+        Parameters
+        ----------
+        state : np.ndarray
+            State of the environment.
+        action : np.ndarray
+            Action of the agent.
+
+        Returns
+        -------
+        R : np.ndarray
+            Fire vector (used as noise in the environment).
+        """
         R = np.zeros_like(action)
         if np.random.rand() < self.fire_prob:
             starting_tree = np.random.randint(self.n_tree)
