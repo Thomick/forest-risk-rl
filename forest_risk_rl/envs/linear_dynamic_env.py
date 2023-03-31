@@ -16,6 +16,7 @@ from forest_risk_rl.risk_measures import (
     group_risk,
     diversity_risk,
 )
+from forest_risk_rl.simple_policies import ThresholdPolicy, CuttingAgePolicy
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -87,17 +88,13 @@ class LinearQuadraticEnv(Model):
         self.reset()
 
     def step(self, action):
-        assert self.action_space.contains(action), "%r (%s) invalid" % (
-            action,
-            type(action),
-        )
-
         next_state, reward, done, info = self.sample(self.state, action)
         self.state = next_state.copy()
         return next_state, reward, done, info
 
     def sample(self, state, action):
         next_state = self.A @ state + self.B @ action + self.R(state, action)
+        next_state = np.clip(next_state, self.low, self.high)
         reward = (
             state.transpose() @ self.M @ state + action.transpose() @ self.N @ action
         )
@@ -371,35 +368,127 @@ class ForestWithFires(ForestLinearEnv):
         return self.B @ K_prime @ (state[:-1] - action)
 
 
+def get_single_tree_env_class(base_class, tree_id, default_policy):
+    """
+    Returns a new environment class that only allows to act on a single tree in the given forest environment.
+
+    Parameters
+    ----------
+    base_class : class
+        Base environment class.
+    tree_id : int
+        Id of the tree to act on.
+    default_policy : class or function
+        Default policy to use for the other trees. Must be callable and take a state as input.
+
+    Returns
+    -------
+    SingleTreeEnv : class
+        New environment class.
+    """
+
+    class SingleTreeEnv(base_class):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.tree_id = tree_id
+            self.default_policy = default_policy
+            self.action_space = spaces.Discrete(2)
+
+        def step(self, action):
+            full_action = self.default_policy(self.state)
+            full_action[self.tree_id] = action
+            return super().step(full_action)
+
+    return SingleTreeEnv
+
+
+def get_local_observation_env_class(base_class, tree_id, default_policy):
+    """
+    Returns a new environment class that only allows to observe the neighbors of a single tree (and only act on this tree) in the given forest environment.
+
+    Parameters
+    ----------
+    base_class : class
+        Base environment class.
+    tree_id : int
+        Id of the tree to act on.
+    default_policy : class or function
+        Default policy to use for the other trees. Must be callable and take a state as input.
+
+    Returns
+    -------
+    LocalObservationEnv : class
+        New environment class.
+    """
+
+    class LocalObservationEnv(
+        get_single_tree_env_class(base_class, tree_id, default_policy)
+    ):
+        def __init__(self, *args, **kwargs):
+            self.tree_id = tree_id
+            super().__init__(*args, **kwargs)
+            self.nb_neighbors = np.sum(self.adjacency_matrix[self.tree_id])
+            self.observation_space = spaces.Box(
+                self.low, self.high, shape=(self.nb_neighbors,)
+            )
+
+        def step(self, action):
+            full_state, reward, done, info = super().step(action)
+            return (
+                full_state[:-1][self.adjacency_matrix[self.tree_id]],
+                reward,
+                done,
+                info,
+            )
+
+        def reset(self):
+            full_state = super().reset()
+            return full_state[:-1][self.adjacency_matrix[self.tree_id]]
+
+    return LocalObservationEnv
+
+
 if __name__ == "__main__":
     """env = ForestWithStorms(
         n_tree=9,
         adjacency_matrix=make_octo_grid_matrix(3, 3),
         H=20,
         alpha=0.2,
-        beta=0.11,
+        beta=0.1,
         storm_prob=0.0,
         storm_power=2,
         storm_sequence=[False, False, False, False, True],
         storm_mask=[0, 0, 0, 0, 0, 0, 0, 0, 1],
     )"""
 
-    env = ForestWithFires(
+    """env = ForestWithFires(
         n_tree=9,
         adjacency_matrix=make_octo_grid_matrix(3, 3),
         H=20,
         alpha=0.2,
         beta=0.1,
         fire_prob=0.05,
+    )"""
+
+    env = get_local_observation_env_class(ForestWithStorms, 4, ThresholdPolicy(9, 15))(
+        n_tree=9,
+        adjacency_matrix=make_grid_matrix(3, 3),
+        H=20,
+        alpha=0.2,
+        beta=0.1,
+        storm_prob=0.0,
+        storm_power=2,
     )
 
     observation = env.reset()
     states = [observation]
+    total_reward = 0
     for i in range(50):
-        action = [0] * 9
+        action = 1 if i % 5 == 0 else 0
         observation, reward, done, info = env.step(action)
         states.append(observation)
-
+        total_reward += reward
+    print(total_reward)
     plt.plot(states)
     plt.xlabel("Time step")
     plt.ylabel("Height")

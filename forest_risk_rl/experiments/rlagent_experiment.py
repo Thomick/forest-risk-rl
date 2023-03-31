@@ -1,10 +1,14 @@
 # Code for the experiments with a RL agent that learns to harvest trees
 
 
-from forest_risk_rl.envs.linear_dynamic_env import ForestLinearEnv, ForestWithStorms
+from forest_risk_rl.envs.linear_dynamic_env import (
+    ForestLinearEnv,
+    ForestWithStorms,
+    ForestWithFires,
+)
 from forest_risk_rl.utils import make_grid_matrix, make_octo_grid_matrix
 
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, DQN, A2C
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -17,21 +21,26 @@ row, col = 5, 5
 H = 20
 nb_run = 100
 nb_iter = 100
-nb_epoch = 600
-budget = 100
+nb_epoch = 300
+budget = 2048  # Will be modified to the next multiple of 2048
 alpha = 0.2
 beta = 0.1
 with_storms = True
-storm_probability = 0.0
+storm_probability = 0.2
 load_model = True
+save_model = True
+model_name = "ppo_forest"
 nb_model = 4
 
-training_experiment = False
+training_experiment = True
 storm_risk_experiment = False
-track_risk_experiment = True
+track_risk_experiment = False
 
 nb_tree = row * col
 adjacency_matrix = make_grid_matrix(row, col)
+storm_mask = np.zeros((row, col))
+storm_mask[0] = 1
+storm_mask = storm_mask.flatten()
 
 if with_storms:
     env = ForestWithStorms(
@@ -41,27 +50,26 @@ if with_storms:
         alpha=alpha,
         beta=beta,
         storm_prob=storm_probability,
+        storm_mask=storm_mask,
     )
 else:
     env = ForestLinearEnv(nb_tree, adjacency_matrix, H=H, alpha=alpha, beta=beta)
 
 if training_experiment:
-    agent = PPO("MlpPolicy", env, verbose=0)
     if load_model:
-        agent = PPO.load("ppo_forest", env)
-        nb_epoch = 1
+        agent = PPO.load(model_name, env)
     else:
-        agent.learn(total_timesteps=budget)
+        agent = PPO("MlpPolicy", env, verbose=0)
 
     df = pd.DataFrame(columns=["Epoch", "Total reward", "Average risk"])
 
     states = []
-    actions = []
     for j in tqdm(range(nb_epoch), desc="Evaluating agent"):
         if not load_model:
             agent.learn(total_timesteps=budget)
         r = []
         states = []
+        actions = []
         for k in range(nb_run):
             risks = []
             observation = env.reset()
@@ -77,8 +85,8 @@ if training_experiment:
             df.loc[len(df)] = [j, total_reward, np.mean(risks)]
             r.append(total_reward)
         print(np.mean(r))
-    if not load_model:
-        agent.save("ppo_forest")
+    if save_model:
+        agent.save(model_name + f"_{nb_epoch}" if load_model else model_name)
     # print(df)
     sns.lineplot(data=df, x="Epoch", y="Total reward")
     plt.title("Total reward of learned policy during training")
