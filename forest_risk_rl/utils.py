@@ -73,28 +73,31 @@ def build_transition_matrix(adjacency_matrix, alpha, beta):
     ----------
     adjacency_matrix : np.array
         Adjacency matrix of the graph
-    alpha : float
-        Growth parameter (0 <= alpha <= 1, influence of the growth rate of the trees)
-    beta : float
-        Interaction parameter (0 <= beta <= 1, influence of the interaction between trees)
+    alpha : float, np.array
+        Growth parameter (0 <= alpha <= 1, influence of the growth rate of the trees) or vector of growth parameters for each tree
+    beta : float, np.array
+        Interaction parameter (0 <= beta <= 1, influence of the interaction between trees) or vector of interaction parameters for each tree.
 
     Returns
     -------
     transition_matrix : np.array
         Transition matrix of the linear dynamic forest environment
     """
-
+    if np.isscalar(alpha):
+        alpha = np.ones(adjacency_matrix.shape[0]) * alpha
+    if np.isscalar(beta):
+        beta = np.ones(adjacency_matrix.shape[0]) * beta
     nb_tree = adjacency_matrix.shape[0]
     transition_matrix = np.zeros((nb_tree + 1, nb_tree + 1))
     for i in range(nb_tree):
         nb_neighbors = np.sum(adjacency_matrix[i, :]) - adjacency_matrix[i, i]
         for j in range(nb_tree):
             if adjacency_matrix[i, j] == 1:
-                transition_matrix[i, j] = -beta / nb_neighbors
-        transition_matrix[i, i] = 1 - alpha
+                transition_matrix[i, j] = -beta[i] / nb_neighbors
+        transition_matrix[i, i] = 1 - alpha[i]
         if nb_neighbors > 0:
-            transition_matrix[i, i] += beta
-        transition_matrix[i, nb_tree] = alpha
+            transition_matrix[i, i] += beta[i]
+        transition_matrix[i, nb_tree] = alpha[i]
     transition_matrix[nb_tree, nb_tree] = 1
     return transition_matrix
 

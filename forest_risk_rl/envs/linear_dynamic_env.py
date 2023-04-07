@@ -320,12 +320,22 @@ class ForestWithFires(ForestLinearEnv):
         Interaction parameter (Influence the interaction between trees).
     fire_prob : float
         Probability of a fire at each time step.
+    fire_duration : int
+        Duration of the fire (number of propagation steps).
     """
 
     def __init__(
-        self, n_tree=10, adjacency_matrix=None, H=20, alpha=0.5, beta=0.5, fire_prob=0.1
+        self,
+        n_tree=10,
+        adjacency_matrix=None,
+        H=20,
+        alpha=0.5,
+        beta=0.5,
+        fire_prob=0.1,
+        fire_duration=3,
     ):
         self.fire_prob = fire_prob
+        self.fire_duration = fire_duration
         super().__init__(
             n_tree, adjacency_matrix, H, alpha, beta, R=self._generate_fire
         )
@@ -350,8 +360,7 @@ class ForestWithFires(ForestLinearEnv):
         if np.random.rand() < self.fire_prob:
             starting_tree = np.random.randint(self.n_tree)
             R[starting_tree] = 1
-            fire_duration = np.random.randint(3, 5)
-            for i in range(fire_duration):
+            for i in range(self.fire_duration):
                 for j in range(self.n_tree):
                     if R[j] == 1:
                         for k in range(self.n_tree):
@@ -360,7 +369,7 @@ class ForestWithFires(ForestLinearEnv):
                                     1 + np.exp(-(state[j] - state[k]))
                                 )
                                 R[k] = np.random.rand() < p_propagation
-            # print(R.reshape(3, 3))
+            # print(R.reshape(5, 5))
         K_prime = np.zeros((self.n_tree, self.n_tree))
         for i in range(len(action)):
             if R[i] == 1:
