@@ -17,7 +17,7 @@ class ForestDiscreteEnv(Model):
 
     Parameters
     ----------
-    n_tree : int
+    nb_tree : int
         Number of trees.
     adjacency_matrix : np.ndarray
         Adjacency matrix of the forest.
@@ -28,25 +28,25 @@ class ForestDiscreteEnv(Model):
     """
 
     def __init__(
-        self, n_tree=10, adjacency_matrix=None, H=20, a=1, storm_power=4, p_storm=0
+        self, nb_tree=10, adjacency_matrix=None, H=20, a=1, storm_power=4, p_storm=0
     ):
         if adjacency_matrix is None:
-            adjacency_matrix = np.ones((n_tree, n_tree)) - np.eye(n_tree)
-        self.n_states = n_tree
-        self.n_actions = n_tree
+            adjacency_matrix = np.ones((nb_tree, nb_tree)) - np.eye(nb_tree)
+        self.n_states = nb_tree
+        self.n_actions = nb_tree
         self.H = H
         self.a = a
         self.D = storm_power
-        self.n_tree = n_tree
+        self.nb_tree = nb_tree
         self.adjacency_matrix = adjacency_matrix.astype(bool)
         self.p_storm = p_storm
-        self.action_space = spaces.MultiBinary(n_tree)
-        self.observation_space = spaces.MultiDiscrete([H + 1] * n_tree)
+        self.action_space = spaces.MultiBinary(nb_tree)
+        self.observation_space = spaces.MultiDiscrete([H + 1] * nb_tree)
 
         self.reset()
 
     def reset(self):
-        self.state = np.random.randint(0, self.H, self.n_tree)
+        self.state = np.random.randint(0, self.H, self.nb_tree)
         return self.state.copy()
 
     def step(self, action):
@@ -100,16 +100,16 @@ class ForestDiscreteEnv(Model):
 
 class ForestMDPEnv(ForestDiscreteEnv):
     def __init__(
-        self, n_tree=10, adjacency_matrix=None, H=20, a=1, storm_power=4, p_storm=0
+        self, nb_tree=10, adjacency_matrix=None, H=20, a=1, storm_power=4, p_storm=0
     ):
-        super().__init__(n_tree, adjacency_matrix, H, a, storm_power, p_storm)
-        self.n_states = n_tree
-        self.n_actions = n_tree
-        self.action_space = spaces.MultiBinary(n_tree)
-        self.observation_space = spaces.MultiDiscrete([H + 1] * (n_tree + 1))
+        super().__init__(nb_tree, adjacency_matrix, H, a, storm_power, p_storm)
+        self.n_states = nb_tree
+        self.n_actions = nb_tree
+        self.action_space = spaces.MultiBinary(nb_tree)
+        self.observation_space = spaces.MultiDiscrete([H + 1] * (nb_tree + 1))
 
     def reset(self):
-        self.state = np.random.randint(0, self.H, self.n_tree)
+        self.state = np.random.randint(0, self.H, self.nb_tree)
         return np.hstack((self.state, np.sum(self.state)))
 
     def step(self, action):
@@ -138,16 +138,16 @@ class ForestMDPEnv(ForestDiscreteEnv):
 
 if __name__ == "__main__":
     row, col = 5, 5
-    n_tree = row * col
+    nb_tree = row * col
     H = 20
     a = 1
     adjacency_matrix = make_grid_matrix(row, col).astype(int)
     env = ForestDiscreteEnv(
-        n_tree=n_tree, adjacency_matrix=adjacency_matrix, H=H, a=a, p_storm=0.05
+        nb_tree=nb_tree, adjacency_matrix=adjacency_matrix, H=H, a=a, p_storm=0.05
     )
     observation = env.reset()
-    env.state = np.zeros(n_tree)
-    # env.state[[2 * i for i in range((n_tree + 1) // 2)]] = H
+    env.state = np.zeros(nb_tree)
+    # env.state[[2 * i for i in range((nb_tree + 1) // 2)]] = H
     states = [observation]
 
     for i in range(100):

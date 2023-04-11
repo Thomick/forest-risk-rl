@@ -15,7 +15,7 @@ class MultiSpeciesForest(ForestLinearEnv):
 
     Parameters
     ----------
-    n_tree : int
+    nb_tree : int
         Number of trees.
     adjacency_matrix : np.ndarray
         Adjacency matrix of the forest.
@@ -38,23 +38,24 @@ class MultiSpeciesForest(ForestLinearEnv):
         beta_list=[0.0, 0.05],
         R=None,
     ):
+        self.nb_species = len(alpha_list)
         self.alpha_list = np.array(alpha_list)
         self.beta_list = np.array(beta_list)
         super().__init__(nb_tree, adjacency_matrix, H, alpha_list[0], beta_list[0], R)
         self.observation_space = spaces.Tuple(
             (
                 spaces.Box(self.low, self.high, shape=(nb_tree + 1,)),
-                spaces.MultiDiscrete([2] * nb_tree),
+                spaces.MultiDiscrete([self.nb_species] * nb_tree),
             )
         )
-        self.action_space = spaces.MultiDiscrete([3] * nb_tree)
+        self.action_space = spaces.MultiDiscrete([self.nb_species + 1] * nb_tree)
 
     def step(self, action):
         next_state, reward, done, info = super().step(action)
         return (next_state, self.tree_types), reward, done, info
 
     def sample(self, state, action):
-        for i in range(self.n_tree):
+        for i in range(self.nb_tree):
             if action[i] != 0:
                 self.tree_types[i] = action[i] - 1
         self._update_transition_matrix()
@@ -62,7 +63,9 @@ class MultiSpeciesForest(ForestLinearEnv):
         return super().sample(state, action)
 
     def reset(self):
-        self.tree_types = np.random.randint(0, 2, size=self.n_tree).astype(int)
+        self.tree_types = np.random.randint(
+            0, self.nb_species, size=self.nb_tree
+        ).astype(int)
         self._update_transition_matrix()
         return super().reset()
 
@@ -72,15 +75,15 @@ class MultiSpeciesForest(ForestLinearEnv):
             self.alpha_list[self.tree_types],
             self.beta_list[self.tree_types],
         )
-        self.B = -self.A @ np.vstack((np.eye(self.n_tree), np.zeros(self.n_tree)))
+        self.B = -self.A @ np.vstack((np.eye(self.nb_tree), np.zeros(self.nb_tree)))
 
 
 if __name__ == "__main__":
     env = MultiSpeciesForest(
         nb_tree=9,
         adjacency_matrix=make_octo_grid_matrix(3, 3),
-        alpha_list=[0.0, 0.1],
-        beta_list=[0.0, 0.05],
+        alpha_list=[0.0, 0.2, 0.1],
+        beta_list=[0.0, 0.1, 0.05],
     )
     env.reset()
     env.step(np.zeros(9).astype(int))

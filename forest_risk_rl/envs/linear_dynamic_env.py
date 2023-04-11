@@ -113,7 +113,7 @@ class ForestLinearEnv(LinearQuadraticEnv):
 
     Parameters
     ----------
-    n_tree : int
+    nb_tree : int
         Number of trees.
     adjacency_matrix : np.ndarray
         Adjacency matrix of the forest.
@@ -129,30 +129,30 @@ class ForestLinearEnv(LinearQuadraticEnv):
 
     def __init__(
         self,
-        n_tree=10,
+        nb_tree=10,
         adjacency_matrix=None,
         H=20,
         alpha=0.5,
         beta=0.5,
         R=None,
     ):
-        self.n_states = n_tree + 1
-        self.n_actions = n_tree
+        self.n_states = nb_tree + 1
+        self.n_actions = nb_tree
         self.H = H
         self.alpha = alpha
         self.beta = beta
-        self.n_tree = n_tree
+        self.nb_tree = nb_tree
         self.adjacency_matrix = adjacency_matrix.astype(bool)
 
         A = build_transition_matrix(adjacency_matrix, alpha, beta)
-        B = -A @ np.vstack((np.eye(n_tree), np.zeros(n_tree)))
+        B = -A @ np.vstack((np.eye(nb_tree), np.zeros(nb_tree)))
         M = np.zeros((self.n_states, self.n_states))
         N = np.eye(self.n_actions) / self.H**2
         super().__init__(
             self.n_states, self.n_actions, A, B, M, N, R=R, high=2 * H, low=0.0
         )
 
-        self.action_space = spaces.MultiBinary(n_tree)
+        self.action_space = spaces.MultiBinary(nb_tree)
         self.step_since_reset = 0
 
     def reset(self):
@@ -170,25 +170,25 @@ class ForestLinearEnv(LinearQuadraticEnv):
         """
         Make action vector from action.
         """
-        K = np.zeros((self.n_tree, self.n_tree))
+        K = np.zeros((self.nb_tree, self.nb_tree))
         for i in range(len(action)):
             if action[i] == 1:
                 K[i, i] = 1
-        K = np.hstack((K, np.zeros((self.n_tree, 1))))
+        K = np.hstack((K, np.zeros((self.nb_tree, 1))))
         return K @ state
 
     def compute_risks(self, state):
         """
         Compute the risk of a given state
         """
-        windthrow_risk = np.zeros(self.n_tree)
-        for i in range(self.n_tree):
+        windthrow_risk = np.zeros(self.nb_tree)
+        for i in range(self.nb_tree):
             windthrow_risk[i] = windthrow_risk_continuous(
                 state[:-1][self.adjacency_matrix[i]], lambda x: (self.H - x) / self.H
             )
 
-        diversity_risk = np.zeros(self.n_tree)
-        group_risk = np.zeros(self.n_tree)
+        diversity_risk = np.zeros(self.nb_tree)
+        group_risk = np.zeros(self.nb_tree)
 
         return windthrow_risk, diversity_risk, group_risk
 
@@ -198,9 +198,9 @@ class ForestLinearEnvCA(ForestLinearEnv):
     Forest environment with continuous action (which are discretized by the environment)
     """
 
-    def __init__(self, n_tree=10, adjacency_matrix=None, H=20, alpha=0.5, beta=0.5):
-        super().__init__(n_tree, adjacency_matrix, H, alpha, beta)
-        self.action_space = spaces.Box(0, 1, shape=(n_tree,))
+    def __init__(self, nb_tree=10, adjacency_matrix=None, H=20, alpha=0.5, beta=0.5):
+        super().__init__(nb_tree, adjacency_matrix, H, alpha, beta)
+        self.action_space = spaces.Box(0, 1, shape=(nb_tree,))
 
     def sample(self, state, action):
         discrete_action = np.round(action).astype(int)
@@ -214,7 +214,7 @@ class ForestWithStorms(ForestLinearEnv):
 
     Parameters
     ----------
-    n_tree : int
+    nb_tree : int
         Number of trees.
     adjacency_matrix : np.ndarray
         Adjacency matrix of the forest.
@@ -236,7 +236,7 @@ class ForestWithStorms(ForestLinearEnv):
 
     def __init__(
         self,
-        n_tree=10,
+        nb_tree=10,
         adjacency_matrix=None,
         H=20,
         alpha=0.5,
@@ -251,12 +251,12 @@ class ForestWithStorms(ForestLinearEnv):
             storm_power = np.sum(adjacency_matrix, axis=1).max()
         self.D = storm_power
         self.storm_sequence = storm_sequence
-        if storm_mask is None or len(storm_mask) != n_tree:
-            self.storm_mask = np.ones(n_tree)
+        if storm_mask is None or len(storm_mask) != nb_tree:
+            self.storm_mask = np.ones(nb_tree)
         else:
             self.storm_mask = np.array(storm_mask, dtype=int)
         super().__init__(
-            n_tree, adjacency_matrix, H, alpha, beta, R=self._generate_storm
+            nb_tree, adjacency_matrix, H, alpha, beta, R=self._generate_storm
         )
 
     def _generate_storm(self, state, action):
@@ -286,7 +286,7 @@ class ForestWithStorms(ForestLinearEnv):
             storm_occurence = True
 
         if storm_occurence:
-            for i in range(self.n_tree):
+            for i in range(self.nb_tree):
                 if self.storm_mask[i] == 0:
                     continue
                 p = np.exp(
@@ -295,7 +295,7 @@ class ForestWithStorms(ForestLinearEnv):
                 if np.random.rand() < p:
                     R[i] = 1
                     # print(i, state[i], p)
-        K_prime = np.zeros((self.n_tree, self.n_tree))
+        K_prime = np.zeros((self.nb_tree, self.nb_tree))
         for i in range(len(action)):
             if R[i] == 1:
                 K_prime[i, i] = 1
@@ -308,7 +308,7 @@ class ForestWithFires(ForestLinearEnv):
 
     Parameters
     ----------
-    n_tree : int
+    nb_tree : int
         Number of trees.
     adjacency_matrix : np.ndarray
         Adjacency matrix of the forest.
@@ -326,7 +326,7 @@ class ForestWithFires(ForestLinearEnv):
 
     def __init__(
         self,
-        n_tree=10,
+        nb_tree=10,
         adjacency_matrix=None,
         H=20,
         alpha=0.5,
@@ -337,7 +337,7 @@ class ForestWithFires(ForestLinearEnv):
         self.fire_prob = fire_prob
         self.fire_duration = fire_duration
         super().__init__(
-            n_tree, adjacency_matrix, H, alpha, beta, R=self._generate_fire
+            nb_tree, adjacency_matrix, H, alpha, beta, R=self._generate_fire
         )
 
     def _generate_fire(self, state, action):
@@ -358,19 +358,19 @@ class ForestWithFires(ForestLinearEnv):
         """
         R = np.zeros_like(action)
         if np.random.rand() < self.fire_prob:
-            starting_tree = np.random.randint(self.n_tree)
+            starting_tree = np.random.randint(self.nb_tree)
             R[starting_tree] = 1
             for i in range(self.fire_duration):
-                for j in range(self.n_tree):
+                for j in range(self.nb_tree):
                     if R[j] == 1:
-                        for k in range(self.n_tree):
+                        for k in range(self.nb_tree):
                             if self.adjacency_matrix[j, k] == 1 and R[k] == 0:
                                 p_propagation = 0.5 / (
                                     1 + np.exp(-(state[j] - state[k]))
                                 )
                                 R[k] = np.random.rand() < p_propagation
             # print(R.reshape(5, 5))
-        K_prime = np.zeros((self.n_tree, self.n_tree))
+        K_prime = np.zeros((self.nb_tree, self.nb_tree))
         for i in range(len(action)):
             if R[i] == 1:
                 K_prime[i, i] = 1
@@ -459,7 +459,7 @@ def get_local_observation_env_class(base_class, tree_id, default_policy):
 
 if __name__ == "__main__":
     """env = ForestWithStorms(
-        n_tree=9,
+        nb_tree=9,
         adjacency_matrix=make_octo_grid_matrix(3, 3),
         H=20,
         alpha=0.2,
@@ -471,7 +471,7 @@ if __name__ == "__main__":
     )"""
 
     """env = ForestWithFires(
-        n_tree=9,
+        nb_tree=9,
         adjacency_matrix=make_octo_grid_matrix(3, 3),
         H=20,
         alpha=0.2,
@@ -480,7 +480,7 @@ if __name__ == "__main__":
     )"""
 
     env = get_local_observation_env_class(ForestWithStorms, 4, ThresholdPolicy(9, 15))(
-        n_tree=9,
+        nb_tree=9,
         adjacency_matrix=make_grid_matrix(3, 3),
         H=20,
         alpha=0.2,

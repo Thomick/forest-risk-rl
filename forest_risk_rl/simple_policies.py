@@ -86,16 +86,16 @@ class FireBlockThreshold(ThresholdPolicy):
 
     name = "Fire blocking policy"
 
-    def __init__(self, nb_tree, threshold, n_row, n_col):
+    def __init__(self, nb_tree, threshold, nb_row, nb_col):
         super().__init__(nb_tree, threshold)
-        self.n_row = n_row
-        self.n_col = n_col
+        self.nb_row = nb_row
+        self.nb_col = nb_col
         self.blocker_mask = np.zeros(
-            (n_row, n_col)
+            (nb_row, nb_col)
         )  # The fire is restrained by partitionning the in smaller grids separated by area with not trees
-        for i in range(n_row):
-            for j in range(n_col):
-                if i == n_row // 2 or j == n_col // 2:
+        for i in range(nb_row):
+            for j in range(nb_col):
+                if i == nb_row // 2 or j == nb_col // 2:
                     self.blocker_mask[i, j] = 1
 
     def __call__(self, state):
@@ -132,28 +132,23 @@ class SynchronizedCutting(CuttingAgePolicy):
         self.age = 0
 
 
-class ExpertPolicy:
+class ExpertPolicy(SimplePolicy):
     """
     An expert policy
     """
 
     name = "Expert policy"
 
-    def __init__(self, nb_tree, adjacency_matrix):
+    def __init__(self, nb_tree, threshold, adjacency_matrix):
         self.nb_tree = nb_tree
+        self.threshold = threshold
         self.adjacency_matrix = adjacency_matrix
 
     def __call__(self, state):
         index = np.zeros(self.nb_tree)
         for i in range(self.nb_tree):
-            for j in range(self.nb_tree):
-                if self.adjacency_matrix[i, j] == 1:
-                    index[i] += state[j] * state[self.nb_tree]
-        to_cut = np.zeros(self.nb_tree)
-        for i in range(self.nb_tree // 10):
-            to_cut[np.argmax(index)] = 1
-            index[np.argmax(index)] = -1
-        return to_cut
+            index[i] = state[i] - np.var(state[:-1][self.adjacency_matrix[i]])
+        return (index >= self.threshold).astype(int)
 
     def get_param(self):
         return None
@@ -213,3 +208,42 @@ def eval_simple_policy(env, policy, nb_iter=1000, nb_run=1, policy_name=None):
                 policy_name,
             ]
     return results
+
+
+def compute_optimal_threshold(env, policy, possible_values, nb_iter=100, nb_run=10):
+    """
+    Compute the optimal threshold for a policy
+
+    Parameters
+    ----------
+    env: gym.Env
+        A forest environment
+    policy: ThresholdPolicy
+        A policy with the ThresholdPolicy interface
+    possible_values: list
+        The list of the values to test for the threshold
+    nb_iter: int
+        The number of step to evaluate the policy (unless the episode is done before)
+    nb_run: int
+        The number of run (the policy and the environment are reinitialized at each run)
+
+    Returns
+    -------
+    optimal_threshold: float
+        The optimal threshold among the possible values
+    """
+    results = pd.DataFrame(columns=["Threshold", "Cumulative reward", "Policy name"])
+    for t in tqdm(
+        possible_values, desc=f"Computing optimal threshold for {policy.name}"
+    ):
+        policy.threshold = t
+        policy.reset()
+        tmp_res = eval_simple_policy(env, policy, nb_iter, nb_run, policy.name)
+        results.loc[len(results)] = [
+            t,
+            tmp_res["Cumulative reward"].mean(),
+            policy.name,
+        ]
+    optimal_threshold = results.loc[results["Cumulative reward"].idxmax()]["Threshold"]
+    print("Optimal threshold: {}".format(optimal_threshold))
+    return optimal_threshold
