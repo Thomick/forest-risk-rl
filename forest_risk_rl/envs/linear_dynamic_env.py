@@ -470,16 +470,16 @@ if __name__ == "__main__":
         storm_mask=[0, 0, 0, 0, 0, 0, 0, 0, 1],
     )"""
 
-    """env = ForestWithFires(
-        nb_tree=9,
-        adjacency_matrix=make_octo_grid_matrix(3, 3),
+    env = ForestWithFires(
+        nb_tree=25,
+        adjacency_matrix=make_octo_grid_matrix(5, 5),
         H=20,
         alpha=0.2,
         beta=0.1,
-        fire_prob=0.05,
-    )"""
+        fire_prob=0.0,
+    )
 
-    env = get_local_observation_env_class(ForestWithStorms, 4, ThresholdPolicy(9, 15))(
+    """env = get_local_observation_env_class(ForestWithStorms, 4, ThresholdPolicy(9, 15))(
         nb_tree=9,
         adjacency_matrix=make_grid_matrix(3, 3),
         H=20,
@@ -487,13 +487,14 @@ if __name__ == "__main__":
         beta=0.1,
         storm_prob=0.0,
         storm_power=2,
-    )
+    )"""
 
     observation = env.reset()
     states = [observation]
     total_reward = 0
     for i in range(50):
-        action = 1 if i % 5 == 0 else 0
+        # action = 1 if i % 5 == 0 else 0
+        action = [0] * 25
         observation, reward, done, info = env.step(action)
         states.append(observation)
         total_reward += reward
@@ -501,4 +502,5 @@ if __name__ == "__main__":
     plt.plot(states)
     plt.xlabel("Time step")
     plt.ylabel("Height")
+    plt.title("25 trees with 5x5 grid structure (interaction with 8 nearest neighbors)")
     plt.show()

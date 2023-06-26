@@ -16,17 +16,17 @@ nb_iter = 100
 nb_run = 100
 period = 20
 H = 20
-sync = False
+sync = True
 alpha = 0.2
 beta = 0.1
 default_cutting_age = 7
 with_storms = True
-storm_probability = 0.01
+storm_probability = 0.0
 
 dispersion_experiment = False
-optimal_age_experiment = False
+optimal_age_experiment = True
 storm_impact_experiment = False
-track_risk_experiment = True
+track_risk_experiment = False
 
 nb_tree = row * col
 adjacency_matrix = make_grid_matrix(row, col)
@@ -100,6 +100,7 @@ if optimal_age_experiment:
         color="blue",
         ax=ax1,
     )
+    print(df.groupby("Cutting age").mean()["Total reward"])
     sns.lineplot(
         data=df,
         x="Cutting age",

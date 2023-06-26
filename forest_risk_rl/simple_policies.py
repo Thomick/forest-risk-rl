@@ -34,6 +34,25 @@ class SimplePolicy:
         pass
 
 
+class PPOPolicy(SimplePolicy):
+    name = "PPO policy"
+
+    def __init__(self, model_name, env):
+        from stable_baselines3 import PPO
+
+        self.agent = PPO.load(model_name, env)
+
+    def __call__(self, state):
+        action, _ = self.agent.predict(state)
+        return action
+
+    def get_param(self):
+        return None
+
+    def reset(self):
+        pass
+
+
 class ThresholdPolicy(SimplePolicy):
     """
     A policy that always cut the tree if its height is above a threshold
@@ -106,6 +125,10 @@ class FireBlockThreshold(ThresholdPolicy):
         return self.threshold
 
 
+class CheckerThreshold:
+    pass
+
+
 class SynchronizedCutting(CuttingAgePolicy):
     """
     A policy that cut the trees synchronously when their age is above a threshold.
@@ -132,12 +155,12 @@ class SynchronizedCutting(CuttingAgePolicy):
         self.age = 0
 
 
-class ExpertPolicy(SimplePolicy):
+class VariancePolicy(SimplePolicy):
     """
-    An expert policy
+    An variance aware threshold policy (for testing purpose)
     """
 
-    name = "Expert policy"
+    name = "Variance policy"
 
     def __init__(self, nb_tree, threshold, adjacency_matrix):
         self.nb_tree = nb_tree
@@ -152,6 +175,31 @@ class ExpertPolicy(SimplePolicy):
 
     def get_param(self):
         return None
+
+
+class BilevelPolicy(SimplePolicy):
+    """
+    A policy that always cut the tree if its height is above a threshold or if the neighboring trees are above a threshold
+    """
+
+    name = "Bilevel policy"
+
+    def __init__(self, adjacency_matrix, threshold):
+        self.nb_tree = adjacency_matrix.shape[0]
+        self.adjacency_matrix = adjacency_matrix
+        self.threshold = threshold
+
+    def __call__(self, state):
+        state = np.array(state)
+        avg_neigh = np.zeros(self.nb_tree)
+        for i in range(self.nb_tree):
+            avg_neigh[i] = np.mean(state[:-1][self.adjacency_matrix[i]])
+        return np.logical_or(
+            state[:-1] >= self.threshold, avg_neigh - state[:-1] > 0
+        ).astype(int)
+
+    def get_param(self):
+        return self.threshold
 
 
 def eval_simple_policy(env, policy, nb_iter=1000, nb_run=1, policy_name=None):

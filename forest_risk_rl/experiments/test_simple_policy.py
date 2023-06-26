@@ -2,10 +2,11 @@ from forest_risk_rl.simple_policies import (
     FireBlockThreshold,
     CuttingAgePolicy,
     ThresholdPolicy,
-    ExpertPolicy,
+    BilevelPolicy,
     eval_simple_policy,
     SynchronizedCutting,
     compute_optimal_threshold,
+    PPOPolicy,
 )
 from forest_risk_rl.utils import build_transition_matrix, make_grid_matrix
 from forest_risk_rl.envs.linear_dynamic_env import ForestWithStorms, ForestWithFires
@@ -26,7 +27,7 @@ alpha = 0.1
 beta = 0.05
 H = 20  # Asymptotic height parameter for the trees
 nb_iter = 100  # Duration of the experiment
-nb_rep = 10  # Number of repetitions of the experiment
+nb_rep = 100  # Number of repetitions of the experiment
 
 cvar_level = 0.95
 show_plots = False
@@ -35,7 +36,8 @@ save_path = "figs"  # Path to save the results, if None, no saving
 # Toggle experiments
 exp_forest_fire = False
 exp_cutting_age = False
-exp_storm = True
+exp_storm = False
+exp_ppo_storm = True
 
 adjacency_matrix = make_grid_matrix(row, col)
 high_fire_risk_env = ForestWithFires(
@@ -89,8 +91,15 @@ storm_env_dict = {
 
 
 def forest_fire_experiment(env, nb_iter, nb_rep, cvar_level, env_key=""):
+    optimal_threshold = compute_optimal_threshold(
+        env, ThresholdPolicy(env.nb_tree, 10), list(range(2, 20)), 100, 20
+    )
     results_threshold = eval_simple_policy(
-        env, ThresholdPolicy(env.nb_tree, 15), nb_iter, nb_rep, "Threshold policy"
+        env,
+        ThresholdPolicy(env.nb_tree, optimal_threshold),
+        nb_iter,
+        nb_rep,
+        "Threshold policy",
     )
     cvar_threshold = compute_empirical_cvar(
         results_threshold.loc[results_threshold["Step"] == nb_iter - 1][
@@ -99,9 +108,12 @@ def forest_fire_experiment(env, nb_iter, nb_rep, cvar_level, env_key=""):
         cvar_level,
     )
     print(f"Env : {env_key} -> CVaR for Threshold policy: {cvar_threshold}")
+    optimal_threshold = compute_optimal_threshold(
+        env, FireBlockThreshold(env.nb_tree, 15, row, col), list(range(2, 20)), 100, 20
+    )
     results_fireblock = eval_simple_policy(
         env,
-        FireBlockThreshold(env.nb_tree, 15, row, col),
+        FireBlockThreshold(env.nb_tree, optimal_threshold, row, col),
         nb_iter,
         nb_rep,
         "Fireblock policy",
@@ -174,6 +186,8 @@ def exp_and_plot(
         plt.savefig(save_path + "/dist.png")
     if show_plots:
         plt.show()
+    else:
+        plt.close("all")
 
 
 if exp_forest_fire:
@@ -235,7 +249,7 @@ if exp_cutting_age:
 
 def storm_experiment(env, nb_iter, nb_rep, cvar_level, env_key=""):
     optimal_threshold = compute_optimal_threshold(
-        env, ThresholdPolicy(env.nb_tree, 10), list(range(2, 20)), 100, 20
+        env, ThresholdPolicy(env.nb_tree, 10), list(range(2, 20)), 100, 10
     )
     results_threshold = eval_simple_policy(
         env,
@@ -254,17 +268,20 @@ def storm_experiment(env, nb_iter, nb_rep, cvar_level, env_key=""):
 
     optimal_threshold = compute_optimal_threshold(
         env,
-        ExpertPolicy(env.nb_tree, 10, env.adjacency_matrix),
+        BilevelPolicy(
+            env.adjacency_matrix,
+            10,
+        ),
         list(range(2, 20)),
         100,
-        20,
+        10,
     )
     results_expert = eval_simple_policy(
         env,
-        ExpertPolicy(env.nb_tree, 10, env.adjacency_matrix),
+        BilevelPolicy(env.adjacency_matrix, optimal_threshold),
         nb_iter,
         nb_rep,
-        "Some expert policy",
+        "Bilevel policy",
     )
     cvar = compute_empirical_cvar(
         results_expert.loc[results_expert["Step"] == nb_iter - 1]["Cumulative reward"],
@@ -278,7 +295,7 @@ def storm_experiment(env, nb_iter, nb_rep, cvar_level, env_key=""):
 if exp_storm:
     print("Storm experiment ...")
     exp_and_plot(
-        storm_env_dict,
+        fire_env_dict,
         storm_experiment,
         nb_iter,
         nb_rep,
@@ -286,4 +303,74 @@ if exp_storm:
         show_plots,
         save_path=save_path,
         exp_name="storm_experiment",
+    )
+
+
+def ppo_storm_experiment(env, nb_iter, nb_rep, cvar_level, env_key=""):
+    optimal_threshold = compute_optimal_threshold(
+        env, ThresholdPolicy(env.nb_tree, 10), list(range(2, 20)), 100, 10
+    )
+    results_threshold = eval_simple_policy(
+        env,
+        ThresholdPolicy(env.nb_tree, optimal_threshold),
+        nb_iter,
+        nb_rep,
+        "Threshold policy",
+    )
+    cvar = compute_empirical_cvar(
+        results_threshold.loc[results_threshold["Step"] == nb_iter - 1][
+            "Cumulative reward"
+        ],
+        cvar_level,
+    )
+    print(f"Env : {env_key} -> CVaR for Threshold policy: {cvar}")
+
+    results_ppo_low_risk = eval_simple_policy(
+        env,
+        PPOPolicy("ppo_forest_storm_low_risk.zip", env),
+        nb_iter,
+        nb_rep,
+        "PPO policy (Trained for low risk)",
+    )
+    cvar = compute_empirical_cvar(
+        results_ppo_low_risk.loc[results_ppo_low_risk["Step"] == nb_iter - 1][
+            "Cumulative reward"
+        ],
+        cvar_level,
+    )
+    print(f"Env : {env_key} -> CVaR for PPO policy (Trained for low risk): {cvar}")
+
+    results_ppo_high_risk = eval_simple_policy(
+        env,
+        PPOPolicy("ppo_forest_storm_high_risk.zip", env),
+        nb_iter,
+        nb_rep,
+        "PPO policy (Trained for high risk)",
+    )
+    cvar = compute_empirical_cvar(
+        results_ppo_high_risk.loc[results_ppo_high_risk["Step"] == nb_iter - 1][
+            "Cumulative reward"
+        ],
+        cvar_level,
+    )
+    print(f"Env : {env_key} -> CVaR for PPO policy (Trained for high risk): {cvar}")
+
+    results = pd.concat(
+        [results_threshold, results_ppo_low_risk, results_ppo_high_risk]
+    )
+
+    return results
+
+
+if exp_ppo_storm:
+    print("PPO storm experiment ...")
+    exp_and_plot(
+        storm_env_dict,
+        ppo_storm_experiment,
+        nb_iter,
+        nb_rep,
+        cvar_level,
+        show_plots,
+        save_path=save_path,
+        exp_name="ppo_storm_experiment",
     )

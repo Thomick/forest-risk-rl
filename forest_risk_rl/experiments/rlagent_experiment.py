@@ -21,15 +21,16 @@ row, col = 5, 5
 H = 20
 nb_run = 100
 nb_iter = 100
-nb_epoch = 300
+eval_every = 10
+nb_epoch = 2000
 budget = 2048  # Will be modified to the next multiple of 2048
 alpha = 0.2
 beta = 0.1
 with_storms = True
-storm_probability = 0.2
-load_model = True
+storm_probability = 0.0
+load_model = False
 save_model = True
-model_name = "ppo_forest"
+model_name = "ppo_forest_deterministic_true"
 nb_model = 4
 
 training_experiment = True
@@ -50,7 +51,6 @@ if with_storms:
         alpha=alpha,
         beta=beta,
         storm_prob=storm_probability,
-        storm_mask=storm_mask,
     )
 else:
     env = ForestLinearEnv(nb_tree, adjacency_matrix, H=H, alpha=alpha, beta=beta)
@@ -64,29 +64,29 @@ if training_experiment:
     df = pd.DataFrame(columns=["Epoch", "Total reward", "Average risk"])
 
     states = []
-    for j in tqdm(range(nb_epoch), desc="Evaluating agent"):
+    for j in tqdm(range(nb_epoch), desc="Training agent"):
         if not load_model:
             agent.learn(total_timesteps=budget)
-        r = []
-        states = []
-        actions = []
-        for k in range(nb_run):
-            risks = []
-            observation = env.reset()
-            states.append(observation)
-            total_reward = 0
-            for i in range(nb_iter):
-                action, _ = agent.predict(observation)
-                observation, reward, done, _ = env.step(action)
-                total_reward += reward
+        if j % eval_every == 0:
+            states = []
+            actions = []
+            for k in range(nb_run):
+                risks = []
+                observation = env.reset()
                 states.append(observation)
-                actions.append(action)
-                risks.append(np.mean(env.compute_risks(observation)[0]))
-            df.loc[len(df)] = [j, total_reward, np.mean(risks)]
-            r.append(total_reward)
-        print(np.mean(r))
+                total_reward = 0
+                for i in range(nb_iter):
+                    action, _ = agent.predict(observation)
+                    observation, reward, done, _ = env.step(action)
+                    total_reward += reward
+                    states.append(observation)
+                    actions.append(action)
+                    risks.append(np.mean(env.compute_risks(observation)[0]))
+                df.loc[len(df)] = [j, total_reward, np.mean(risks)]
+            # print(np.mean(r))
     if save_model:
         agent.save(model_name + f"_{nb_epoch}" if load_model else model_name)
+        df.to_csv(model_name + f"_{nb_epoch}" if load_model else model_name)
     # print(df)
     sns.lineplot(data=df, x="Epoch", y="Total reward")
     plt.title("Total reward of learned policy during training")

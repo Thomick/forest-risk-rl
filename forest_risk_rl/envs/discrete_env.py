@@ -9,9 +9,10 @@ import seaborn as sns
 import numpy as np
 from tqdm import tqdm
 from forest_risk_rl.utils import make_grid_matrix
+from forest_risk_rl.envs.linear_dynamic_env import ForestLinearEnv
 
 
-class ForestDiscreteEnv(Model):
+class ForestDiscreteProbEnv(Model):
     """
     Forest environment with discrete states and actions.
 
@@ -98,7 +99,7 @@ class ForestDiscreteEnv(Model):
         return p_windthrow
 
 
-class ForestMDPEnv(ForestDiscreteEnv):
+"""class ForestMDPEnv(ForestDiscreteProbEnv):
     def __init__(
         self, nb_tree=10, adjacency_matrix=None, H=20, a=1, storm_power=4, p_storm=0
     ):
@@ -133,7 +134,28 @@ class ForestMDPEnv(ForestDiscreteEnv):
 
         self.state = s.copy()
         done = False
-        return np.hstack((self.state, np.sum(self.state))), reward, done, {}
+        return np.hstack((self.state, np.sum(self.state))), reward, done, {}"""
+
+
+# TODO
+class ForestDiscreteLinearEnv(ForestLinearEnv):
+    def __init__(
+        self, nb_tree=10, adjacency_matrix=None, H=20, alpha=0.5, beta=0.5, R=None
+    ):
+        super().__init__(nb_tree, adjacency_matrix, H, alpha, beta, R)
+        self.n_states = nb_tree * (2 * H + 1)
+        self.n_actions = 2**nb_tree
+        self.action_space = spaces.MultiBinary(nb_tree)
+        self.observation_space = spaces.MultiDiscrete([2 * H + 1] * nb_tree)
+
+    def reset(self):
+        self.state = np.random.randint(0, self.H, self.nb_tree)
+        return self.state.copy()
+
+    def step(self, action):
+        observation, reward, done, info = super().step(action)
+        discretized_observation = np.floor(observation).astype(int)
+        return discretized_observation, reward, done, info
 
 
 if __name__ == "__main__":
@@ -142,7 +164,7 @@ if __name__ == "__main__":
     H = 20
     a = 1
     adjacency_matrix = make_grid_matrix(row, col).astype(int)
-    env = ForestDiscreteEnv(
+    env = ForestDiscreteProbEnv(
         nb_tree=nb_tree, adjacency_matrix=adjacency_matrix, H=H, a=a, p_storm=0.05
     )
     observation = env.reset()

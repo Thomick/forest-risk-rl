@@ -18,7 +18,7 @@ H = 20
 alpha = 0.2
 beta = 0.1
 with_storms = True
-storm_probability = 0.05
+storm_probability = 0.0
 default_threshold = 15
 
 optimal_threshold_experiment = True
@@ -50,7 +50,7 @@ if optimal_threshold_experiment:
             "Average cutting age",
         ]
     )
-    for t in tqdm(range(1, 23), desc="Computing optimal threshold"):
+    for t in tqdm(np.linspace(13, 18, 50), desc="Computing optimal threshold"):
         observation = env.reset()
         for _ in range(nb_run):
             harvest_sizes = []
@@ -59,7 +59,7 @@ if optimal_threshold_experiment:
             harvest_count = 0
             time_last_harvest = [0] * nb_tree
             cutting_age = []
-            for i in range(nb_iter - 1):
+            for i in range(nb_iter):
                 action = [0] * nb_tree
                 for j in range(nb_tree):
                     if observation[j] >= t:
@@ -87,6 +87,7 @@ if optimal_threshold_experiment:
         color="blue",
         ax=ax1,
     )
+    print(df.groupby("Threshold").mean()["Total reward"])
     sns.lineplot(
         data=df,
         x="Threshold",
