@@ -7,8 +7,7 @@ The code is contained in the forest_risk_rl folder.
 
 - The folders named forest_risk_rl/envs and forest_risk_rl/learners contain code from Average Reward Reinforcement Learning [repo](https://gitlab.inria.fr/omaillar/average-reward-reinforcement-learning). 
 - forest_risk_rl/basic_model contains the preliminary code for the basic discrete model. 
-- forest_risk_rl/envs contains the new forest environments and discrete MDP environments from [Average Reward Reinforcement Learning](https://gitlab.inria.fr/omaillar/average-reward-reinforcement-learning)
-- forest_risk_rl/learners contains the generic learners from [Average Reward Reinforcement Learning](https://gitlab.inria.fr/omaillar/average-reward-reinforcement-learning)
+- forest_risk_rl/envs/discrete_env.py and forest_risk_rl/envs/linear_dynamic_env.py contains the new forest environments
 - forest_risk_rl/experiments contains the experiments and the code for the plots.
 
 ## Installing and running the experiments
