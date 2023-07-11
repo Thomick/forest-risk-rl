@@ -1,5 +1,5 @@
 ## State of the project
-The project is currently in a state where it can be used as a library for the different forest environments (by importing env.discrete_env and env.linear_dynamic_env). However, the code is not fully documented. 
+The project is currently in a state where it can be used as a library for the different forest environments (by importing env.discrete_env and env.linear_dynamic_env). 
 The experiments are mainly for testing purpose since they have to be modified directly in the code to set up the parameters.
 
 ## Code
