@@ -1,31 +1,44 @@
-# Tree-level model of forest growth with interactions between trees
-*by Thomas Michel*
+# Tree-level Model of Forest Growth with Interactions Between Trees
 
-## State of the project
-The project is currently in a state where it can be used as a library for the different forest environments (by importing env.discrete_env and env.linear_dynamic_env). 
-The experiments are mainly for testing purpose since they have to be modified directly in the code to set up the parameters.
+A reinforcement learning environment (via Gym) for modeling forest growth dynamics that accounts for tree-to-tree interactions.
 
-## Code
-The code is contained in the forest_risk_rl folder. 
+*Developed by Thomas Michel*
 
-- The folders named forest_risk_rl/envs and forest_risk_rl/learners contain code from Average Reward Reinforcement Learning [repo](https://gitlab.inria.fr/omaillar/average-reward-reinforcement-learning). 
-- forest_risk_rl/basic_model contains the preliminary code for the basic discrete model. 
-- forest_risk_rl/envs/discrete_env.py and forest_risk_rl/envs/linear_dynamic_env.py contains the new forest environments
-- forest_risk_rl/experiments contains the experiments and the code for the plots.
+## Overview
 
-## Installing and running the experiments
-To run the experiments:
-```
+This project provides a reinforcement learning framework for simulating forest management and growth. The environments implement the Gym interface, allowing RL agents to interact with the forest simulation through states, actions, rewards, and transitions. The implementation models tree-level growth patterns and inter-tree interactions, enabling research on optimal forest management strategies.
+
+## Project Status
+
+The codebase is functional as a Gym-compatible RL environment library. The experimental components require direct code modification to adjust parameters here as examples of how to use the code.
+
+## Repository Structure
+
+The main code is organized in the `forest_risk_rl` folder:
+
+- **`envs/`** and **`learners/`** - Contains code adapted from the [Average Reward Reinforcement Learning repository](https://gitlab.inria.fr/omaillar/average-reward-reinforcement-learning)
+- **`basic_model/`** - Preliminary implementation of the basic discrete model
+- **`envs/discrete_env.py`** and **`envs/linear_dynamic_env.py`** - Core implementations of the forest RL environments
+- **`experiments/`** - Experiment scripts and visualization code for testing RL algorithms
+
+## Installation and Usage
+
+### Option 1: Using a virtual environment (recommended)
+
+```bash
+# Create and activate a virtual environment
 python -m venv .venv
 source .venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Run an experiment
 python forest_risk_rl/experiments/[experiment_name].py
 ```
-or if you think you already have the necessary packages installed:
-```
+
+### Option 2: Direct execution (if dependencies are already installed)
+
+```bash
 python -m forest_risk_rl.experiments.[experiment_name]
 ```
-
-
-## Resource folder
-The resource folder contains some papers that may be useful during discussions.
